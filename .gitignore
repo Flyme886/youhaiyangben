@@ -1,0 +1,20 @@
+# 环境与密钥
+.env
+*.key
+*.pem
+
+# 运行时数据
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# 系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="topbar">
+  <div class="brand">有害样本任务台</div>
+  <div class="nav-actions">
+    <a class="btn secondary" href="/tasks">任务列表</a>
+    <a class="btn secondary" href="/admin">管理</a>
+    <a class="btn" href="/tasks/new">新建任务</a>
+    <form method="post" action="/logout">
+      <button class="ghost" type="submit">退出</button>
+    </form>
+  </div>
+</header>
+<main class="shell">
+  {% block content %}{% endblock %}
+</main>
+{% endblock %}

@@ -1,0 +1,21 @@
+# 有害样本 - 飞书机器人依赖
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# HTTP Client
+aiohttp==3.9.1
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+# Optional: For async support
+asyncio-contextmanager==1.0.0
+
+# 后端应用依赖（如需共用环境）
+# sqlalchemy==2.0.23
+# sqlite3 (built-in)

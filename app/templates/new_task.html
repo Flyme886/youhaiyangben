@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}新建任务 - 有害样本任务台{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1>新建任务</h1>
+    <p class="subtle">只接受 .xlsx。提交后可以离开页面，稍后回任务列表下载。</p>
+  </div>
+</div>
+
+<section class="form-panel">
+  <form method="post" action="/tasks" enctype="multipart/form-data">
+    <label for="name">任务名称</label>
+    <input id="name" name="name" placeholder="例如：5月30日微博样本">
+
+    <label for="file">Excel 文件</label>
+    <input id="file" name="file" type="file" accept=".xlsx" required>
+
+    <label for="note">备注</label>
+    <textarea id="note" name="note" placeholder="可留空"></textarea>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <p><button type="submit">开始生成 Word</button></p>
+  </form>
+</section>
+{% endblock %}

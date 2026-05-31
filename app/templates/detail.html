@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block title %}任务详情 - 有害样本任务台{% endblock %}
+{% block refresh %}{% if task.status in ["queued", "running"] %}10{% endif %}{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1>{{ task.name }}</h1>
+    <p class="subtle">{{ task.id }} · {{ task.created_at }}</p>
+  </div>
+  <span class="status {{ task.status }}">{{ task.status }}</span>
+</div>
+
+<section class="grid">
+  <div class="metric"><span>当前步骤</span><strong>{{ task.current_step }}</strong></div>
+  <div class="metric"><span>Word 数量</span><strong>{{ task.docx_count }}</strong></div>
+  <div class="metric"><span>待处理问题</span><strong>{{ task.issue_count }}</strong></div>
+  <div class="metric"><span>完成时间</span><strong>{{ task.finished_at or "处理中" }}</strong></div>
+</section>
+
+<section class="detail-panel">
+  <h2>采集状态</h2>
+  <p>登录态：{% if storage_state.exists %}已配置，{{ storage_state.updated_at }}{% else %}未配置{% endif %}</p>
+  <p>状态统计：{{ summary.capture_status_counts or summary.screenshot_status_counts or {} }}</p>
+  {% if task.status in ["paused_captcha", "partial_completed", "failed"] %}
+  <form method="post" action="/tasks/{{ task.id }}/resume">
+    <button type="submit">继续任务</button>
+  </form>
+  {% endif %}
+</section>
+
+{% if task.error_message %}
+<section class="detail-panel">
+  <h2>异常</h2>
+  <p class="error">{{ task.error_message }}</p>
+</section>
+{% endif %}
+
+<section class="detail-panel">
+  <h2>下载</h2>
+  {% if files %}
+  <div class="file-list">
+    {% for file in files %}
+    <div class="file-row">
+      <span>{{ file.name }} <span class="subtle">{{ (file.size / 1024)|round(1) }} KB</span></span>
+      <a class="btn secondary" href="/tasks/{{ task.id }}/download/{{ file.name }}">下载</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="subtle">还没有可下载文件。</p>
+  {% endif %}
+</section>
+
+<section class="detail-panel">
+  <h2>完成标记</h2>
+  <pre>{{ summary_pretty }}</pre>
+</section>
+
+<section class="detail-panel">
+  <h2>运行日志</h2>
+  {% if log_tail %}
+  <pre>{{ log_tail }}</pre>
+  {% else %}
+  <p class="subtle">任务尚未写入日志。</p>
+  {% endif %}
+</section>
+{% endblock %}

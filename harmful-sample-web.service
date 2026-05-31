@@ -1,0 +1,14 @@
+[Unit]
+Description=Harmful Sample Web
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/harmful-sample-web
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/harmful-sample-web/run_server.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=有害样本 - 飞书机器人（长连接）
+After=network.target harmful-sample-web.service
+Wants=harmful-sample-web.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/harmful-sample-web
+EnvironmentFile=/opt/harmful-sample-web/.env
+ExecStart=/opt/harmful-sample-web/.venv/bin/python feishu_bot.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

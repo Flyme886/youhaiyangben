@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block title %}任务列表 - 有害样本任务台{% endblock %}
+{% block refresh %}20{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1>任务列表</h1>
+    <p class="subtle">一次只执行一个任务，服务器后台自动截图、质检并生成 Word。</p>
+  </div>
+  <a class="btn" href="/tasks/new">上传 Excel</a>
+</div>
+
+{% if tasks %}
+<table class="task-table">
+  <thead>
+    <tr>
+      <th>任务</th>
+      <th>状态</th>
+      <th>步骤</th>
+      <th>Word</th>
+      <th>创建时间</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for task in tasks %}
+    <tr>
+      <td><strong>{{ task.name }}</strong><br><span class="subtle">{{ task.id }}</span></td>
+      <td><span class="status {{ task.status }}">{{ task.status }}</span></td>
+      <td>{{ task.current_step }}</td>
+      <td>{{ task.docx_count }}</td>
+      <td>{{ task.created_at }}</td>
+      <td><a class="btn secondary" href="/tasks/{{ task.id }}">详情</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<section class="empty">
+  <h2>还没有任务</h2>
+  <p class="subtle">上传第一份 Excel 后，服务器会开始排队处理。</p>
+</section>
+{% endif %}
+{% endblock %}

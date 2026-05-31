@@ -1,0 +1,3 @@
+display_name: Excel to Word Reports
+short_description: Excel rows to Word report batches
+default_prompt: Convert this Excel file into 50-item Word report batches using the configured field mapping.

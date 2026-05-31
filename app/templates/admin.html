@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}管理 - 有害样本任务台{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <div>
+    <h1>管理</h1>
+    <p class="subtle">维护登录态和采集引擎配置。</p>
+  </div>
+</div>
+
+<section class="detail-panel">
+  <h2>登录态</h2>
+  <p>路径：{{ storage_state.path }}</p>
+  <p>状态：{% if storage_state.exists %}已配置，{{ storage_state.updated_at }}{% else %}未配置{% endif %}</p>
+  <form method="post" action="/admin/storage-state" enctype="multipart/form-data">
+    <label for="file">上传 storage_state.json</label>
+    <input id="file" name="file" type="file" accept=".json" required>
+    {% if message %}<p>{{ message }}</p>{% endif %}
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <p><button type="submit">更新登录态</button></p>
+  </form>
+</section>
+
+<section class="detail-panel">
+  <h2>采集配置</h2>
+  <div class="grid">
+    <div class="metric"><span>引擎</span><strong>{{ settings.capture_engine }}</strong></div>
+    <div class="metric"><span>Profile</span><strong>{{ settings.capture_profile }}</strong></div>
+    <div class="metric"><span>验证码阈值</span><strong>{{ settings.captcha_pause_threshold }}</strong></div>
+    <div class="metric"><span>全页截图</span><strong>{{ settings.capture_full_page }}</strong></div>
+  </div>
+</section>
+{% endblock %}
