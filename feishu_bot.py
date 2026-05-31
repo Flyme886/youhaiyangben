@@ -86,11 +86,22 @@ def state_add(task_id: str, chat_id: str, filename: str) -> None:
         _save_state(s)
 
 
-def state_mark_notified(task_id: str) -> None:
+def state_mark_notified(task_id: str, at_status: str = "") -> None:
     with _state_lock:
         s = _load_state()
         if task_id in s:
             s[task_id]["notified"] = True
+            if at_status:
+                s[task_id]["notified_at_status"] = at_status
+            _save_state(s)
+
+
+def state_unmark_notified(task_id: str) -> None:
+    with _state_lock:
+        s = _load_state()
+        if task_id in s:
+            s[task_id]["notified"] = False
+            s[task_id].pop("notified_at_status", None)
             _save_state(s)
 
 
@@ -342,7 +353,7 @@ def _handle_text(chat_id: str, text: str) -> None:
         task_id, filename = result
         ok = backend_cancel(task_id)
         if ok:
-            state_mark_notified(task_id)
+            state_mark_notified(task_id, "cancelled")
             send_text(chat_id, f"🛑 任务《{filename}》已取消")
         else:
             send_text(chat_id, "⚠️ 取消失败，任务可能已完成或不在运行中")
@@ -356,6 +367,7 @@ def _handle_text(chat_id: str, text: str) -> None:
         task_id = parts[1]
         ok = backend_resume(task_id)
         if ok:
+            state_unmark_notified(task_id)
             send_text(chat_id, f"▶️ 任务 {task_id} 已重新排队，完成后自动发送结果")
         else:
             send_text(chat_id, f"⚠️ 任务 {task_id} 无法继续（状态不对或不存在）")
@@ -435,6 +447,7 @@ def _poller() -> None:
     while True:
         try:
             _check_pending()
+            _check_resumed()
         except Exception:
             logger.exception("poller error")
         time.sleep(POLL_INTERVAL)
@@ -468,7 +481,7 @@ def _check_pending() -> None:
         elif status == "failed":
             err = task.get("error_message", "")
             send_text(chat_id, f"❌ 《{filename}》处理失败\n{err or '详情见后台日志'}")
-            state_mark_notified(task_id)
+            state_mark_notified(task_id, "failed")
 
         elif status == "paused_captcha":
             err = task.get("error_message", "")
@@ -477,10 +490,25 @@ def _check_pending() -> None:
                 f"⏸️ 《{filename}》任务暂停 — 触发验证码\n{err or ''}\n"
                 f"处理完毕后，发送「继续 {task_id}」恢复任务",
             )
-            state_mark_notified(task_id)
+            state_mark_notified(task_id, "paused_captcha")
 
         elif status == "cancelled":
-            state_mark_notified(task_id)
+            state_mark_notified(task_id, "cancelled")
+
+
+def _check_resumed() -> None:
+    """任务在网页后台被 resume 时，bot 状态里仍是 notified=True，
+    此函数扫描这些任务，若后端已重新变为 running/queued 则重置轮询。"""
+    with _state_lock:
+        s = _load_state()
+        candidates = {
+            tid: info for tid, info in s.items()
+            if info.get("notified") and info.get("notified_at_status") in {"failed", "paused_captcha"}
+        }
+    for task_id in candidates:
+        task = backend_get_task(task_id)
+        if task and task.get("status") in {"running", "queued", "completed", "partial_completed"}:
+            state_unmark_notified(task_id)
 
 
 def _notify_completed(task_id: str, task: dict, chat_id: str, filename: str, status: str) -> None:
@@ -515,7 +543,7 @@ def _notify_completed(task_id: str, task: dict, chat_id: str, filename: str, sta
             send_text(chat_id, f"⚠️ {f['name']} 发送失败，请从后台手动下载")
 
     logger.info("task %s: sent %d/%d docx to chat %s", task_id, success_count, len(docx_files), chat_id)
-    state_mark_notified(task_id)
+    state_mark_notified(task_id, status)
 
 
 # ─── 主入口 ───────────────────────────────────────────────────────────────────
