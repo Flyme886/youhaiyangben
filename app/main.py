@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import BASE_DIR, settings
 from .db import create_task, get_task, init_db, list_recoverable_tasks, list_tasks, parse_summary, update_task
-from .task_runner import enqueue_task
+from .task_runner import cancel_task, enqueue_task
 
 
 app = FastAPI(title="有害样本任务台")
@@ -228,6 +228,15 @@ def internal_get_task(task_id: str, _: None = Depends(_require_bot_key)):
     if not task:
         raise HTTPException(status_code=404)
     return JSONResponse(task)
+
+
+@app.post("/internal/tasks/{task_id}/cancel")
+def internal_cancel_task(task_id: str, _: None = Depends(_require_bot_key)):
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404)
+    ok = cancel_task(task_id)
+    return JSONResponse({"ok": ok, "status": get_task(task_id)["status"]})
 
 
 @app.post("/internal/tasks/{task_id}/resume")

@@ -20,6 +20,41 @@ TASK_QUEUE: queue.Queue[str] = queue.Queue()
 WORKER_STARTED = False
 WORKER_LOCK = threading.Lock()
 
+# 运行中子进程注册表（task_id → Popen），用于取消时杀进程
+_ACTIVE_PROCS: dict[str, "subprocess.Popen[str]"] = {}
+_ACTIVE_PROCS_LOCK = threading.Lock()
+
+
+def _register_proc(task_id: str, proc: "subprocess.Popen[str]") -> None:
+    with _ACTIVE_PROCS_LOCK:
+        _ACTIVE_PROCS[task_id] = proc
+
+
+def _unregister_proc(task_id: str) -> None:
+    with _ACTIVE_PROCS_LOCK:
+        _ACTIVE_PROCS.pop(task_id, None)
+
+
+def _is_cancelled(task_id: str) -> bool:
+    task = get_task(task_id)
+    return task is not None and task.get("status") == "cancelled"
+
+
+def cancel_task(task_id: str) -> bool:
+    """标记任务为已取消，并终止正在运行的子进程。"""
+    task = get_task(task_id)
+    if not task or task["status"] not in {"queued", "running"}:
+        return False
+    update_task(task_id, status="cancelled", current_step="已取消", error_message="用户取消任务")
+    with _ACTIVE_PROCS_LOCK:
+        proc = _ACTIVE_PROCS.get(task_id)
+        if proc:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+    return True
+
 
 def ensure_worker() -> None:
     global WORKER_STARTED
@@ -40,9 +75,34 @@ def _worker_loop() -> None:
     while True:
         task_id = TASK_QUEUE.get()
         try:
-            run_task(task_id)
+            task = get_task(task_id)
+            if task and task.get("status") == "cancelled":
+                pass  # 入队前已被取消，跳过
+            else:
+                run_task(task_id)
         finally:
             TASK_QUEUE.task_done()
+
+
+def _extract_friendly_error(stdout: str) -> str:
+    import re
+    m = re.search(r"SystemExit: (.+)", stdout)
+    if m:
+        return m.group(1).strip()
+    lines = [l.strip() for l in stdout.splitlines() if l.strip()]
+    return lines[-1] if lines else ""
+
+
+def _count_captured(manifest_path: Path) -> dict | None:
+    if not manifest_path.exists():
+        return None
+    try:
+        data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        items = data.get("items", [])
+        ok = sum(1 for it in items if it.get("status") == "ok")
+        return {"ok": ok, "total": len(items)}
+    except Exception:
+        return None
 
 
 def run_task(task_id: str) -> None:
@@ -62,6 +122,16 @@ def run_task(task_id: str) -> None:
     deadline = time.time() + settings.task_timeout_seconds
     step_failures: list[str] = []
 
+    # 检查 storage_state 文件年龄
+    ss_path = settings.storage_state_path
+    if ss_path.exists():
+        age_days = (time.time() - ss_path.stat().st_mtime) / 86400
+        if age_days > settings.storage_state_max_age_days:
+            step_failures.append(
+                f"⚠️ 登录态文件已 {int(age_days)} 天未更新（超过 {settings.storage_state_max_age_days} 天），"
+                f"建议去 Admin 页面刷新 storage_state.json"
+            )
+
     with log_path.open("a", encoding="utf-8", errors="replace") as log:
         log.write(f"[{datetime.now().isoformat(timespec='seconds')}] fixed worker started\n")
         log.write(f"skill_dir={settings.skill_dir}\n")
@@ -76,6 +146,9 @@ def run_task(task_id: str) -> None:
             screenshots_manifest = screenshots_dir / "screenshots_manifest.json"
             quality_manifest = screenshots_dir / "screenshot_quality_manifest.json"
 
+            if _is_cancelled(task_id):
+                return
+
             run_step(
                 task_id,
                 "预检 Excel",
@@ -85,6 +158,9 @@ def run_task(task_id: str) -> None:
                 deadline,
                 required=True,
             )
+
+            if _is_cancelled(task_id):
+                return
 
             capture_cmd = [
                 settings.python_bin,
@@ -111,16 +187,25 @@ def run_task(task_id: str) -> None:
                     "true" if settings.capture_full_page else "false",
                     "--drission-domains",
                     settings.drission_domains,
+                    "--retries",
+                    str(settings.capture_retries),
                 ]
             )
 
             capture_ok = run_step(task_id, "截图采集", capture_cmd, task_dir, log, deadline, required=False)
             if not capture_ok:
                 step_failures.append("截图采集失败")
+
+            if _is_cancelled(task_id):
+                return
+
             capture_counts = read_capture_counts(screenshots_manifest)
             if capture_counts.get("captcha_detected", 0) >= settings.captcha_pause_threshold:
                 step_failures.append(f"检测到验证码 {capture_counts.get('captcha_detected', 0)} 条，任务暂停等待人工处理")
                 finalize_task(task_id, task_dir, step_failures, paused=True)
+                return
+
+            if _is_cancelled(task_id):
                 return
 
             if screenshots_manifest.exists():
@@ -138,6 +223,9 @@ def run_task(task_id: str) -> None:
             else:
                 step_failures.append("未生成 screenshots_manifest.json")
 
+            if _is_cancelled(task_id):
+                return
+
             final_cmd = [settings.python_bin, str(excel_script), str(input_xlsx), "--output-dir", str(output_dir)]
             if quality_manifest.exists():
                 final_cmd.extend(["--screenshots-manifest", str(quality_manifest)])
@@ -151,11 +239,24 @@ def run_task(task_id: str) -> None:
             if not word_ok:
                 step_failures.append("生成 Word 失败")
         except TimeoutError as exc:
-            step_failures.append(str(exc))
+            already_done = _count_captured(screenshots_dir / "screenshots_manifest.json")
+            msg = str(exc)
+            if already_done is not None:
+                msg += f"（已完成截图 {already_done['ok']}/{already_done['total']}）"
+            step_failures.append(msg)
         except subprocess.CalledProcessError as exc:
-            step_failures.append(f"{exc.cmd} exited with {exc.returncode}")
+            if _is_cancelled(task_id):
+                return
+            raw = exc.output or ""
+            friendly = _extract_friendly_error(raw)
+            step_failures.append(friendly or f"{exc.cmd[0]} 退出码 {exc.returncode}")
         except Exception as exc:
+            if _is_cancelled(task_id):
+                return
             step_failures.append(f"worker error: {exc}")
+
+    if _is_cancelled(task_id):
+        return
 
     finalize_task(task_id, task_dir, step_failures, paused=False)
 
@@ -185,7 +286,7 @@ def run_step(
         env["CHROMIUM_EXECUTABLE_PATH"] = os.environ["CHROMIUM_EXECUTABLE_PATH"]
 
     timeout = max(1, int(deadline - time.time()))
-    result = subprocess.run(
+    proc = subprocess.Popen(
         cmd,
         cwd=cwd,
         env=env,
@@ -194,20 +295,29 @@ def run_step(
         errors="replace",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        timeout=timeout,
     )
+    _register_proc(task_id, proc)
+    try:
+        stdout, _ = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout, _ = proc.communicate()
+        _unregister_proc(task_id)
+        raise TimeoutError(f"任务超时，停止于：{label}")
+    _unregister_proc(task_id)
+
     elapsed = round(time.time() - started, 2)
-    if result.stdout:
-        log.write(result.stdout)
-        if not result.stdout.endswith("\n"):
+    if stdout:
+        log.write(stdout)
+        if not stdout.endswith("\n"):
             log.write("\n")
-    log.write(f"[{datetime.now().isoformat(timespec='seconds')}] exit={result.returncode} elapsed={elapsed}s\n")
+    log.write(f"[{datetime.now().isoformat(timespec='seconds')}] exit={proc.returncode} elapsed={elapsed}s\n")
     log.flush()
 
-    if result.returncode == 0:
+    if proc.returncode == 0:
         return True
     if required:
-        raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout)
+        raise subprocess.CalledProcessError(proc.returncode, cmd, output=stdout)
     return False
 
 

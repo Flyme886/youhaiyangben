@@ -46,6 +46,9 @@ class Settings:
     task_timeout_seconds: int = int(os.environ.get("TASK_TIMEOUT_SECONDS", "7200"))
     session_secret: str = os.environ.get("SESSION_SECRET", "harmful-sample-web-local-secret")
     bot_api_key: str = os.environ.get("BOT_API_KEY", "")
+    storage_state_max_age_days: int = int(os.environ.get("STORAGE_STATE_MAX_AGE_DAYS", "7"))
+    capture_retries: int = int(os.environ.get("CAPTURE_RETRIES", "2"))
+    feishu_bot_notify_url: str = os.environ.get("FEISHU_BOT_NOTIFY_URL", "")
 
 
 settings = Settings()

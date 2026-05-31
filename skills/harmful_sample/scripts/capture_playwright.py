@@ -17,6 +17,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parents[2]
 
 
+def _safe_json(obj: Any) -> str:
+    """Serialize to JSON, replacing any surrogate characters so UTF-8 write never fails."""
+    s = json.dumps(obj, ensure_ascii=False, indent=2)
+    return s.encode("utf-8", errors="replace").decode("utf-8")
+
+
 JS_CAPTURE = r"""
 const fs = require('fs/promises');
 const path = require('path');
@@ -69,15 +75,15 @@ async function classify(page, networkSignals, error) {
     return names.filter(name => Boolean(window[name])).join(' ');
   }).catch(() => "");
   const combined = `${title}\n${bodyText}\n${url}\n${globals}`;
-  const captchaSignals = [
-    ...Array.from(networkSignals),
-    ...detectSignals(combined, 'dom')
-  ];
-  if (globals) captchaSignals.push(`global:${globals}`);
-  if (captchaSignals.length) return ['captcha_detected', 'captcha or risk challenge detected', captchaSignals, true];
-  if (detectLogin(combined)) return ['login_required', 'page appears to require login', captchaSignals, true];
-  if (bodyText.trim().length < 20) return ['blocked_or_blank', 'page body is blank or too short', captchaSignals, false];
-  return ['ok', '', captchaSignals, false];
+  const domSignals = detectSignals(combined, 'dom');
+  const allSignals = [...Array.from(networkSignals), ...domSignals];
+  if (globals) allSignals.push(`global:${globals}`);
+  const hasDomOrGlobal = domSignals.length > 0 || Boolean(globals);
+  const networkOnlyAndNoContent = networkSignals.size > 0 && !hasDomOrGlobal && bodyText.trim().length < 200;
+  if (hasDomOrGlobal || networkOnlyAndNoContent) return ['captcha_detected', 'captcha or risk challenge detected', allSignals, true];
+  if (detectLogin(combined)) return ['login_required', 'page appears to require login', allSignals, true];
+  if (bodyText.trim().length < 20) return ['blocked_or_blank', 'page body is blank or too short', allSignals, false];
+  return ['ok', '', allSignals, false];
 }
 
 async function extractEvidence(page) {
@@ -263,7 +269,7 @@ def unavailable_manifest(args: argparse.Namespace, reason: str) -> Path:
     ]
     args.output_dir.mkdir(parents=True, exist_ok=True)
     path = args.output_dir / "screenshots_manifest.json"
-    path.write_text(json.dumps({"meta": {"engine": "playwright", "error": reason}, "items": results}, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(_safe_json({"meta": {"engine": "playwright", "error": reason}, "items": results}), encoding="utf-8")
     return path
 
 
@@ -329,7 +335,7 @@ def prepare_pending_manifest(links_manifest: Path, output_dir: Path, previous: d
     if not pending:
         return None
     path = output_dir / "_pending_links_manifest.json"
-    path.write_text(json.dumps({"meta": data.get("meta", {}), "items": pending}, ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(_safe_json({"meta": data.get("meta", {}), "items": pending}), encoding="utf-8")
     return path
 
 
@@ -350,7 +356,7 @@ def write_merged_manifest(links_manifest: Path, output_dir: Path, previous: dict
         key = str(item.get("item_id") or "")
         merged.append(captured.get(key) or previous.get(key) or item)
     out = {"meta": {"engine": "playwright", "total": len(merged), "reused": len(previous)}, "items": merged}
-    (output_dir / "screenshots_manifest.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    (output_dir / "screenshots_manifest.json").write_text(_safe_json(out), encoding="utf-8")
 
 
 def missing_browser_error(output: str) -> bool:

@@ -1,12 +1,15 @@
 """
-有害样本 - 飞书机器人（第一版）
+有害样本 - 飞书机器人
 
 流程：
   1. 用户发 Excel 文件给机器人
-  2. 机器人立即回"已收到"
-  3. 后端异步跑截图 → 质检 → Word 生成
-  4. 完成后机器人把 Word 文件发回原会话
-  5. 失败时发失败通知
+  2. 机器人立即回"已收到，发送「取消」可撤销"
+  3. 每步骤变化时推送进度
+  4. 完成后发摘要文本 + Word 文件
+  5. 失败/暂停时发通知，暂停时提示"继续 {task_id}"
+  6. 收到重复文件名（仍在处理中）时拒绝并提示
+  7. 收到"取消"文本时取消最近一个活跃任务
+  8. 收到"继续 {task_id}"文本时恢复暂停任务
 
 环境变量（.env）：
   FEISHU_APP_ID / FEISHU_APP_SECRET
@@ -47,12 +50,12 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8787")
 BOT_API_KEY = os.environ.get("BOT_API_KEY", "")
 FEISHU_API = "https://open.feishu.cn/open-apis"
 
-# 记录"哪个任务对应哪个会话"，重启后持久化
 STATE_FILE = Path(__file__).parent / "bot_state.json"
 POLL_INTERVAL = 30  # 秒
 
 
-# ─── 状态持久化（task_id -> {chat_id, filename}）────────────────────────────
+# ─── 状态持久化 ────────────────────────────────────────────────────────────────
+# state 结构: {task_id: {chat_id, filename, notified, created_at, last_step}}
 
 _state_lock = threading.Lock()
 
@@ -73,7 +76,13 @@ def _save_state(state: dict) -> None:
 def state_add(task_id: str, chat_id: str, filename: str) -> None:
     with _state_lock:
         s = _load_state()
-        s[task_id] = {"chat_id": chat_id, "filename": filename, "notified": False}
+        s[task_id] = {
+            "chat_id": chat_id,
+            "filename": filename,
+            "notified": False,
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "last_step": "",
+        }
         _save_state(s)
 
 
@@ -85,13 +94,51 @@ def state_mark_notified(task_id: str) -> None:
             _save_state(s)
 
 
+def state_update_step(task_id: str, step: str) -> None:
+    with _state_lock:
+        s = _load_state()
+        if task_id in s:
+            s[task_id]["last_step"] = step
+            _save_state(s)
+
+
 def state_pending() -> dict:
     with _state_lock:
         s = _load_state()
         return {tid: info for tid, info in s.items() if not info.get("notified")}
 
 
-# ─── 飞书 API 工具 ───────────────────────────────────────────────────────────
+def state_find_active_by_filename(chat_id: str, filename: str) -> Optional[str]:
+    """若该 chat 下同文件名的任务仍在处理中（未通知），返回其 task_id。"""
+    with _state_lock:
+        s = _load_state()
+        for tid, info in s.items():
+            if (
+                info.get("chat_id") == chat_id
+                and info.get("filename") == filename
+                and not info.get("notified")
+            ):
+                return tid
+    return None
+
+
+def state_latest_active(chat_id: str) -> Optional[tuple[str, str]]:
+    """返回该 chat 最新的未通知任务 (task_id, filename)，无则 None。"""
+    with _state_lock:
+        s = _load_state()
+        candidates = [
+            (tid, info)
+            for tid, info in s.items()
+            if info.get("chat_id") == chat_id and not info.get("notified")
+        ]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+        tid, info = candidates[0]
+        return tid, info.get("filename", "")
+
+
+# ─── 飞书 API 工具 ───────────────────────────────────────────────────────────────
 
 _token_cache: dict = {"token": "", "expire": 0}
 _token_lock = threading.Lock()
@@ -117,7 +164,6 @@ def _auth_headers() -> dict:
 
 
 def download_feishu_file(message_id: str, file_key: str) -> Optional[bytes]:
-    """从飞书消息下载文件内容"""
     try:
         resp = requests.get(
             f"{FEISHU_API}/im/v1/messages/{message_id}/resources/{file_key}",
@@ -162,7 +208,6 @@ def send_text(chat_id: str, text: str) -> None:
 
 
 def send_file(chat_id: str, file_bytes: bytes, filename: str) -> bool:
-    """上传文件到飞书并发送到会话"""
     suffix = Path(filename).suffix
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
         f.write(file_bytes)
@@ -201,14 +246,13 @@ def send_file(chat_id: str, file_bytes: bytes, filename: str) -> bool:
         os.unlink(tmp)
 
 
-# ─── 后端 API 客户端 ──────────────────────────────────────────────────────────
+# ─── 后端 API 客户端 ────────────────────────────────────────────────────────────
 
 _backend = requests.Session()
 _backend.headers.update({"X-Bot-Key": BOT_API_KEY})
 
 
 def backend_upload(file_bytes: bytes, filename: str, task_name: str) -> Optional[str]:
-    """上传 Excel 到后端创建任务，返回 task_id"""
     try:
         resp = _backend.post(
             f"{BACKEND_URL}/internal/tasks/upload",
@@ -231,6 +275,15 @@ def backend_get_task(task_id: str) -> Optional[dict]:
     except Exception as e:
         logger.error("backend_get_task %s failed: %s", task_id, e)
         return None
+
+
+def backend_queue_position(task_id: str) -> int:
+    try:
+        tasks = _backend.get(f"{BACKEND_URL}/internal/tasks", timeout=10).json()
+        queued = [t for t in tasks if t["status"] in {"queued", "running"} and t["id"] != task_id]
+        return len(queued)
+    except Exception:
+        return 0
 
 
 def backend_list_files(task_id: str) -> list[dict]:
@@ -256,7 +309,60 @@ def backend_download(task_id: str, filename: str) -> Optional[bytes]:
         return None
 
 
-# ─── 消息处理 ─────────────────────────────────────────────────────────────────
+def backend_cancel(task_id: str) -> bool:
+    try:
+        resp = _backend.post(f"{BACKEND_URL}/internal/tasks/{task_id}/cancel", timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("ok", False)
+    except Exception as e:
+        logger.error("backend_cancel %s failed: %s", task_id, e)
+        return False
+
+
+def backend_resume(task_id: str) -> bool:
+    try:
+        resp = _backend.post(f"{BACKEND_URL}/internal/tasks/{task_id}/resume", timeout=10)
+        resp.raise_for_status()
+        return resp.json().get("ok", False)
+    except Exception as e:
+        logger.error("backend_resume %s failed: %s", task_id, e)
+        return False
+
+
+# ─── 文字指令处理 ──────────────────────────────────────────────────────────────
+
+def _handle_text(chat_id: str, text: str) -> None:
+    text = text.strip()
+
+    if text == "取消":
+        result = state_latest_active(chat_id)
+        if not result:
+            send_text(chat_id, "ℹ️ 当前没有进行中的任务")
+            return
+        task_id, filename = result
+        ok = backend_cancel(task_id)
+        if ok:
+            state_mark_notified(task_id)
+            send_text(chat_id, f"🛑 任务《{filename}》已取消")
+        else:
+            send_text(chat_id, "⚠️ 取消失败，任务可能已完成或不在运行中")
+        return
+
+    if text.startswith("继续"):
+        parts = text.split()
+        if len(parts) < 2:
+            send_text(chat_id, "请输入「继续 任务ID」，任务ID 在任务暂停提示中可见")
+            return
+        task_id = parts[1]
+        ok = backend_resume(task_id)
+        if ok:
+            send_text(chat_id, f"▶️ 任务 {task_id} 已重新排队，完成后自动发送结果")
+        else:
+            send_text(chat_id, f"⚠️ 任务 {task_id} 无法继续（状态不对或不存在）")
+        return
+
+
+# ─── 消息处理 ──────────────────────────────────────────────────────────────────
 
 def on_message(data: P2ImMessageReceiveV1) -> None:
     try:
@@ -264,6 +370,14 @@ def on_message(data: P2ImMessageReceiveV1) -> None:
         message = event.message
         chat_id = message.chat_id or ""
         msg_type = message.message_type or ""
+
+        # 文字指令（取消 / 继续 task_id）
+        if msg_type == "text":
+            content = json.loads(message.content or "{}")
+            text = content.get("text", "").strip()
+            if text:
+                _handle_text(chat_id, text)
+            return
 
         if msg_type != "file":
             return
@@ -277,29 +391,44 @@ def on_message(data: P2ImMessageReceiveV1) -> None:
             send_text(chat_id, "⚠️ 仅支持 .xlsx 格式，请重新发送")
             return
 
+        # 重复文件检测：同文件名仍在处理中则拒绝
+        dup_id = state_find_active_by_filename(chat_id, file_name)
+        if dup_id:
+            send_text(
+                chat_id,
+                f"⚠️ 与已发送文件完全相同，请检查\n（《{file_name}》正在处理中，任务ID: {dup_id}）",
+            )
+            return
+
         logger.info("收到文件 %s (key=%s) from chat %s", file_name, file_key, chat_id)
 
-        # 下载文件
         file_bytes = download_feishu_file(message_id, file_key)
         if not file_bytes:
             send_text(chat_id, "❌ 文件下载失败，请重试")
             return
 
-        # 上传到后端创建任务
         task_id = backend_upload(file_bytes, file_name, file_name)
         if not task_id:
             send_text(chat_id, "❌ 任务创建失败，请联系管理员")
             return
 
         state_add(task_id, chat_id, file_name)
-        send_text(chat_id, f"✅ 已收到《{file_name}》\n后台处理中，完成后自动发送 Word 结果")
-        logger.info("task %s created for chat %s", task_id, chat_id)
+        ahead = backend_queue_position(task_id)
+        if ahead == 0:
+            queue_hint = "立即开始处理"
+        else:
+            queue_hint = f"排队中（前方 {ahead} 个任务）"
+        send_text(
+            chat_id,
+            f"✅ 已收到《{file_name}》，{queue_hint}\n完成后自动发送 Word 结果\n发送「取消」可撤销此任务",
+        )
+        logger.info("task %s created for chat %s (ahead=%d)", task_id, chat_id, ahead)
 
     except Exception:
         logger.exception("on_message error")
 
 
-# ─── 后台轮询：任务完成后回传 Word ────────────────────────────────────────────
+# ─── 后台轮询：进度通知 + 完成回传 ───────────────────────────────────────────────
 
 def _poller() -> None:
     logger.info("轮询线程启动，间隔 %ds", POLL_INTERVAL)
@@ -316,43 +445,80 @@ def _check_pending() -> None:
     if not pending:
         return
 
-    for task_id, info in pending.items():
+    for task_id, info in list(pending.items()):
         chat_id = info["chat_id"]
         filename = info["filename"]
+        last_step = info.get("last_step", "")
 
         task = backend_get_task(task_id)
         if not task:
             continue
 
         status = task.get("status", "")
+        current_step = task.get("current_step", "")
+
+        # 步骤变化时推送进度（仅 running 状态）
+        if status == "running" and current_step and current_step != last_step:
+            state_update_step(task_id, current_step)
+            send_text(chat_id, f"⏳ 《{filename}》→ {current_step}")
 
         if status in {"completed", "partial_completed"}:
-            docx_files = [f for f in backend_list_files(task_id) if f["name"].endswith(".docx")]
-            if not docx_files:
-                # Word 还没写完，稍后再查
-                continue
-
-            hint = "（部分截图待补）" if status == "partial_completed" else ""
-            send_text(chat_id, f"✅ 《{filename}》处理完成{hint}，正在发送 Word 报告……")
-
-            success_count = 0
-            for f in docx_files:
-                data = backend_download(task_id, f["name"])
-                if data and send_file(chat_id, data, f["name"]):
-                    success_count += 1
-                else:
-                    send_text(chat_id, f"⚠️ {f['name']} 发送失败，请从后台手动下载")
-
-            logger.info("task %s: sent %d/%d docx to chat %s", task_id, success_count, len(docx_files), chat_id)
-            state_mark_notified(task_id)
+            _notify_completed(task_id, task, chat_id, filename, status)
 
         elif status == "failed":
             err = task.get("error_message", "")
             send_text(chat_id, f"❌ 《{filename}》处理失败\n{err or '详情见后台日志'}")
             state_mark_notified(task_id)
 
+        elif status == "paused_captcha":
+            err = task.get("error_message", "")
+            send_text(
+                chat_id,
+                f"⏸️ 《{filename}》任务暂停 — 触发验证码\n{err or ''}\n"
+                f"处理完毕后，发送「继续 {task_id}」恢复任务",
+            )
+            state_mark_notified(task_id)
 
-# ─── 主入口 ──────────────────────────────────────────────────────────────────
+        elif status == "cancelled":
+            state_mark_notified(task_id)
+
+
+def _notify_completed(task_id: str, task: dict, chat_id: str, filename: str, status: str) -> None:
+    docx_files = [f for f in backend_list_files(task_id) if f["name"].endswith(".docx")]
+    if not docx_files:
+        return  # Word 还没写完，下次轮询再试
+
+    # 统计摘要
+    try:
+        summary = json.loads(task.get("summary_json", "{}"))
+        counts = summary.get("capture_status_counts") or {}
+        total = sum(counts.values()) if counts else 0
+        ok_n = counts.get("ok", 0)
+        login_n = counts.get("login_required", 0)
+        blocked_n = counts.get("blocked_or_blank", 0)
+        summary_line = f"📊 共 {total} 条 | 成功 {ok_n} | 需登录 {login_n} | 被拦截 {blocked_n}" if total > 0 else ""
+    except Exception:
+        summary_line = ""
+
+    hint = "（部分截图待补）" if status == "partial_completed" else ""
+    msg_parts = [f"✅ 《{filename}》处理完成{hint}，正在发送 Word 报告……"]
+    if summary_line:
+        msg_parts.append(summary_line)
+    send_text(chat_id, "\n".join(msg_parts))
+
+    success_count = 0
+    for f in docx_files:
+        data = backend_download(task_id, f["name"])
+        if data and send_file(chat_id, data, f["name"]):
+            success_count += 1
+        else:
+            send_text(chat_id, f"⚠️ {f['name']} 发送失败，请从后台手动下载")
+
+    logger.info("task %s: sent %d/%d docx to chat %s", task_id, success_count, len(docx_files), chat_id)
+    state_mark_notified(task_id)
+
+
+# ─── 主入口 ───────────────────────────────────────────────────────────────────
 
 def main() -> None:
     if not APP_ID or not APP_SECRET:

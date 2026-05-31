@@ -511,11 +511,20 @@ def classify_harm(
     return labels, note
 
 
-def add_blank_screenshot_placeholder(doc: Document, reason: str) -> None:
+def add_blank_screenshot_placeholder(doc: Document, reason: str, status: str = "not_captured") -> None:
+    STATUS_STYLE: dict[str, tuple[tuple[int, int, int], str]] = {
+        "login_required":   ((204, 102, 0),  "⚠️ 需要登录才能查看"),
+        "blocked_or_blank": ((192, 0,   0),  "❌ 访问被拦截或页面为空"),
+        "captcha_detected": ((192, 0,   0),  "❌ 触发验证码，无法采集"),
+        "timeout":          ((153, 51,  0),  "⏱ 加载超时"),
+        "navigation_error": ((153, 51,  0),  "⚠️ 导航错误"),
+    }
+    color, prefix = STATUS_STYLE.get(status, ((128, 128, 128), "截图待补"))
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(2)
-    run = p.add_run("截图待补" + (f"：{reason}" if reason else ""))
-    set_run_font_ex(run, size=9.5, color=(128, 128, 128))
+    display = f"{prefix}：{reason}" if reason and reason not in {"not captured", "not_captured"} else prefix
+    run = p.add_run(display)
+    set_run_font_ex(run, size=9.5, color=color)
 
 
 def add_evaluation_box(doc: Document, labels: list[str], note: str) -> None:
@@ -594,15 +603,15 @@ def add_record(
                 run = p.add_run()
                 run.add_picture(str(image_path), width=Cm(13.5))
             except Exception as exc:
-                add_blank_screenshot_placeholder(doc, f"insert_error: {exc}")
+                add_blank_screenshot_placeholder(doc, f"insert_error: {exc}", status="insert_error")
                 record.screenshot_status = "insert_error"
                 record.screenshot_reason = str(exc)
         else:
-            add_blank_screenshot_placeholder(doc, f"missing_file: {image_path}")
+            add_blank_screenshot_placeholder(doc, f"missing_file: {image_path}", status="missing_file")
             record.screenshot_status = "missing_file"
             record.screenshot_reason = str(image_path)
     else:
-        add_blank_screenshot_placeholder(doc, quality_reason or reason)
+        add_blank_screenshot_placeholder(doc, quality_reason or reason, status=status)
 
     labels, note = pre_harm if pre_harm is not None else classify_harm(record, screenshot, screenshot_root)
     record.harm_categories = labels
