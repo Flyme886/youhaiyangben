@@ -344,7 +344,11 @@ def backend_resume(task_id: str) -> bool:
 # ─── 文字指令处理 ──────────────────────────────────────────────────────────────
 
 def _handle_text(chat_id: str, text: str) -> None:
-    text = text.strip()
+    import re
+    # 清除群消息中的 @提及 标记（如 "@有害样本整理 "），只保留指令内容
+    text = re.sub(r"@[^\s]+", "", text).strip()
+    if not text:
+        return
 
     if text == "取消":
         result = state_latest_active(chat_id)
@@ -374,6 +378,15 @@ def _handle_text(chat_id: str, text: str) -> None:
             send_text(chat_id, f"⚠️ 任务 {task_id} 无法继续（状态不对或不存在）")
         return
 
+    # 未知文字指令 → 使用说明
+    send_text(
+        chat_id,
+        "📋 我是舆情样本采集助手，支持以下操作：\n"
+        "• 发送 .xlsx 文件 → 提交采集任务\n"
+        "• 发送「取消」→ 取消当前任务\n"
+        "• 发送「继续 任务ID」→ 恢复暂停的任务",
+    )
+
 
 # ─── 消息处理 ──────────────────────────────────────────────────────────────────
 
@@ -383,6 +396,7 @@ def on_message(data: P2ImMessageReceiveV1) -> None:
         message = event.message
         chat_id = message.chat_id or ""
         msg_type = message.message_type or ""
+        logger.info("收到消息 chat_id=%s type=%s content=%s", chat_id, msg_type, message.content or "")
 
         # 文字指令（取消 / 继续 task_id）
         if msg_type == "text":
