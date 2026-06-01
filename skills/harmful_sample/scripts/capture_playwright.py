@@ -45,7 +45,10 @@ const captchaTerms = [
   "captcha", "recaptcha", "hcaptcha", "cloudflare", "verify", "verification",
   "risk", "challenge", "验证码", "滑块", "安全验证", "访问异常", "环境异常", "人机验证"
 ];
-const loginTerms = ["登录", "login", "sign in", "请先登录", "登录后查看"];
+// 强信号：页面主体就是登录墙（无论内容多少都判为 login_required）
+const loginStrongTerms = ["请先登录", "登录后查看", "登录后可查看", "登录查看完整", "请登录后", "login to view", "sign in to view"];
+// 弱信号：导航栏常见词，仅在页面内容很少时才算登录墙
+const loginWeakTerms = ["登录", "login", "sign in"];
 
 function safeName(item) {
   return String(item.item_id).padStart(5, '0') + ".png";
@@ -56,9 +59,13 @@ function detectSignals(text, prefix) {
   return captchaTerms.filter(term => lower.includes(String(term).toLowerCase())).map(term => `${prefix}:${term}`);
 }
 
-function detectLogin(text) {
+function detectLogin(text, bodyLen) {
   const lower = String(text || "").toLowerCase();
-  return loginTerms.some(term => lower.includes(String(term).toLowerCase()));
+  // 强信号优先，直接判为登录墙
+  if (loginStrongTerms.some(t => lower.includes(t.toLowerCase()))) return true;
+  // 页面有实质内容（>500字符），弱信号只是导航按钮，不算登录墙
+  if (bodyLen > 500) return false;
+  return loginWeakTerms.some(t => lower.includes(t.toLowerCase()));
 }
 
 async function classify(page, networkSignals, error) {
@@ -81,7 +88,7 @@ async function classify(page, networkSignals, error) {
   const hasDomOrGlobal = domSignals.length > 0 || Boolean(globals);
   const networkOnlyAndNoContent = networkSignals.size > 0 && !hasDomOrGlobal && bodyText.trim().length < 200;
   if (hasDomOrGlobal || networkOnlyAndNoContent) return ['captcha_detected', 'captcha or risk challenge detected', allSignals, true];
-  if (detectLogin(combined)) return ['login_required', 'page appears to require login', allSignals, true];
+  if (detectLogin(combined, bodyText.trim().length)) return ['login_required', 'page appears to require login', allSignals, true];
   if (bodyText.trim().length < 20) return ['blocked_or_blank', 'page body is blank or too short', allSignals, false];
   return ['ok', '', allSignals, false];
 }
@@ -119,7 +126,30 @@ async function captureOne(context, item) {
       const evidence = await extractEvidence(page);
       const fileName = safeName(item);
       const outPath = path.join(outputDir, fileName);
-      await page.screenshot({ path: outPath, fullPage });
+      // 向下滚动触发懒加载内容，再回到顶部
+      await page.evaluate(() => new Promise(r => {
+        window.scrollTo(0, Math.min(document.body.scrollHeight, 3000));
+        setTimeout(() => { window.scrollTo(0, 0); r(); }, 300);
+      })).catch(() => {});
+      await page.waitForTimeout(300);
+      // 计算最后一个叶节点的底部，裁掉无限滚动占位符产生的空白
+      const vpWidth = profile === 'mobile' ? 390 : 1280;
+      const clipH = await page.evaluate(() => {
+        let max = 0;
+        document.querySelectorAll('body *').forEach(el => {
+          if (el.children.length === 0) {
+            const r = el.getBoundingClientRect();
+            if ((el.textContent.trim().length > 0 || el.tagName === 'IMG') && r.height > 3 && r.width > 3) {
+              max = Math.max(max, r.bottom + window.scrollY);
+            }
+          }
+        });
+        return Math.min(Math.ceil(max) + 30, 8000);
+      }).catch(() => 0);
+      const screenshotOpts = clipH > 100
+        ? { path: outPath, clip: { x: 0, y: 0, width: vpWidth, height: clipH } }
+        : { path: outPath, fullPage };
+      await page.screenshot(screenshotOpts);
       await page.close();
       return { ...item, engine: "playwright", status, reason, captcha_signals: captchaSignals, needs_manual_action: needsManualAction, screenshot_path: fileName, ...evidence };
     } catch (err) {
@@ -334,6 +364,7 @@ def prepare_pending_manifest(links_manifest: Path, output_dir: Path, previous: d
     pending = [item for item in items if str(item.get("item_id") or "") not in previous]
     if not pending:
         return None
+    output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "_pending_links_manifest.json"
     path.write_text(_safe_json({"meta": data.get("meta", {}), "items": pending}), encoding="utf-8")
     return path
