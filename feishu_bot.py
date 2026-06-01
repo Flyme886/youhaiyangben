@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Optional
 
 import lark_oapi as lark
+import llm_reporter
 from lark_oapi.api.im.v1 import (
     CreateFileRequest,
     CreateFileRequestBody,
@@ -480,16 +481,17 @@ def _check_pending() -> None:
 
         elif status == "failed":
             err = task.get("error_message", "")
-            send_text(chat_id, f"❌ 《{filename}》处理失败\n{err or '详情见后台日志'}")
+            msg = llm_reporter.report_failed(filename, err) \
+                  or f"❌ 《{filename}》处理失败\n{err or '详情见后台日志'}"
+            send_text(chat_id, msg)
             state_mark_notified(task_id, "failed")
 
         elif status == "paused_captcha":
             err = task.get("error_message", "")
-            send_text(
-                chat_id,
-                f"⏸️ 《{filename}》任务暂停 — 触发验证码\n{err or ''}\n"
-                f"处理完毕后，发送「继续 {task_id}」恢复任务",
-            )
+            msg = llm_reporter.report_paused(filename, err, task_id) \
+                  or (f"⏸️ 《{filename}》任务暂停 — 触发验证码\n{err or ''}\n"
+                      f"处理完毕后，发送「继续 {task_id}」恢复任务")
+            send_text(chat_id, msg)
             state_mark_notified(task_id, "paused_captcha")
 
         elif status == "cancelled":
@@ -516,23 +518,31 @@ def _notify_completed(task_id: str, task: dict, chat_id: str, filename: str, sta
     if not docx_files:
         return  # Word 还没写完，下次轮询再试
 
-    # 统计摘要
+    # 解析统计数据
     try:
         summary = json.loads(task.get("summary_json", "{}"))
         counts = summary.get("capture_status_counts") or {}
+        step_failures = summary.get("worker_issues") or []
+    except Exception:
+        counts = {}
+        step_failures = []
+
+    is_partial = (status == "partial_completed")
+
+    # 尝试 LLM 播报，失败自动降级为模板
+    msg = llm_reporter.report_completed(filename, counts, step_failures, is_partial)
+    if not msg:
         total = sum(counts.values()) if counts else 0
         ok_n = counts.get("ok", 0)
         login_n = counts.get("login_required", 0)
         blocked_n = counts.get("blocked_or_blank", 0)
-        summary_line = f"📊 共 {total} 条 | 成功 {ok_n} | 需登录 {login_n} | 被拦截 {blocked_n}" if total > 0 else ""
-    except Exception:
-        summary_line = ""
+        hint = "（部分截图待补）" if is_partial else ""
+        parts = [f"✅ 《{filename}》处理完成{hint}，正在发送 Word 报告……"]
+        if total > 0:
+            parts.append(f"📊 共 {total} 条 | 成功 {ok_n} | 需登录 {login_n} | 被拦截 {blocked_n}")
+        msg = "\n".join(parts)
 
-    hint = "（部分截图待补）" if status == "partial_completed" else ""
-    msg_parts = [f"✅ 《{filename}》处理完成{hint}，正在发送 Word 报告……"]
-    if summary_line:
-        msg_parts.append(summary_line)
-    send_text(chat_id, "\n".join(msg_parts))
+    send_text(chat_id, msg)
 
     success_count = 0
     for f in docx_files:
