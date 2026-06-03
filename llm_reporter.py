@@ -19,11 +19,11 @@ DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
 LLM_ENABLED = os.environ.get("LLM_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
 
 _SYSTEM_PROMPT = """\
-你是舆情采集系统的任务播报助手。根据采集任务数据生成简洁友好的中文播报。
+你是有害样本整理任务播报助手。根据采集任务数据生成简洁友好的中文播报。
 
 严格规则：
 1. 只汇报结果，绝不闲聊，绝不回答任何额外问题
-2. 分析主要失败原因（尽量按平台说明：微博/今日头条/抖音/微信视频号）
+2. 最重要的是：分析主要失败原因（尽量按平台说明：微博/今日头条/抖音/微信视频号等等）
 3. 给出1条具体可操作的建议
 4. 使用 emoji，不用 markdown（不加粗、不用代码块）
 5. 最多 6 行，语气简洁专业\
