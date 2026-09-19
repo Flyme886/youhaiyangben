@@ -1,0 +1,21 @@
+{
+  "_说明": "复制为 capture_config.json 并改成你自己的绝对路径。run_capture.sh 读 CONFIG 指向它的路径（默认同目录 capture_config.json）。",
+  "manifest": "/abs/path/输出Word/links_manifest.json",
+  "shots_dir": "/abs/path/输出Word/screenshots",
+  "results_dir": "/abs/path/_ego",
+  "space_id": 3,
+  "limit": 0,
+  "tag": "run",
+  "fresh": true,
+  "recycle": 99,
+  "watchdog": {
+    "goto": 24000,
+    "nav": 18000,
+    "settle": 1300,
+    "hide": 5000,
+    "probe": 5000,
+    "extract": 10000,
+    "shot": 20000,
+    "reset": 10000
+  }
+}
