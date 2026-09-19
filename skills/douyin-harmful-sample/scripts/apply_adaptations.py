@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""幂等地把一份「新 clone」的仓库 excel_to_word.py 打上本任务做的 4 类适配。
+"""幂等地把一份「新 clone」的仓库 excel_to_word.py 打上本任务做的 5 类适配。
 
 适配对照源：engine/skills/harmful_sample/scripts/excel_to_word.py（已改好版本）。
 本脚本不直接引用 engine 路径，而是把需要的改动以「标记+字符串替换」的形式注入，
 因此可对任意一份符合上游结构的 fresh clone 复用。
 
-4 类适配（脚本内部拆成下列若干幂等注入块，按顺序执行）：
+5 类适配（脚本内部拆成下列若干幂等注入块，按顺序执行）：
   1) COLUMN_ALIASES 列名别名映射（标题/微博内容←标题、原文/评论链接←URL、原文作者←作者、
      序号/来源网站/摘要 直通），并在 meta 输出 column_alias_map 便于对账。
   2) ID_COLUMN_ALIASES = ["编号","id","ID"] + --id-min/--id-max 区间筛选，
@@ -14,6 +14,9 @@
      `本批编号范围：X — Y　共 N 条`。
   4) Record 增加 sheet_id 字段（存编号），元信息行改为
      `（编号400 · 原序号1234 · 抖音 · @作者）`，并写入 links_manifest.json。
+  5) 去防御性表述：删掉仓库给所有视频平台链接追加「视频画面及完整语音需人工核验。」的
+     两处注入点（关键词路径 + classify_harm），并注入 DEFENSIVE_PHRASES + strip_defensive
+     兜底清洗（也能挡住大模型路径自带的同类对冲措辞）。判定理由保持断言、不做免责对冲。
 
 幂等性：每步先检测标记，已存在则跳过，重复执行不会重复注入。
 若某步锚点在新 clone 上找不到，抛出清晰报错（含应手动添加的代码），不会静默出错。
@@ -207,6 +210,40 @@ def apply(source: str) -> tuple[str, list[str]]:
         source = _replace_once(source, anchor, ins, "ID_COLUMN_ALIASES 常量")
         applied.append("ID_COLUMN_ALIASES 常量")
 
+    # ── 适配 6a：DEFENSIVE_PHRASES + strip_defensive（去掉判定理由里的对冲措辞） ──
+    # 仓库原文会给所有视频平台链接的判定理由追加「视频画面及完整语音需人工核验。」，
+    # 这是防御性/免责表述，成品不要。这里提供短语表 + 清洗函数，供 6b/6c 调用；
+    # 同时兜住大模型路径可能自带的同类措辞。
+    if "DEFENSIVE_PHRASES" not in source:
+        anchor = 'ID_COLUMN_ALIASES = ["编号", "id", "ID"]'
+        ins = (
+            anchor + "\n\n"
+            "# 判定理由中的防御性/免责措辞：统一剔除，成品不出现「需人工核验」类对冲表述\n"
+            "DEFENSIVE_PHRASES = (\n"
+            '    "视频画面及完整语音需人工核验。",\n'
+            '    "视频画面及完整语音需人工核验",\n'
+            '    "需人工核验。",\n'
+            '    "需人工核验",\n'
+            '    "需人工复核。",\n'
+            '    "需人工复核",\n'
+            '    "仅供参考。",\n'
+            '    "仅供参考",\n'
+            '    "请以官方通报为准。",\n'
+            '    "请以官方通报为准",\n'
+            '    "请以官方发布为准。",\n'
+            '    "请以官方发布为准",\n'
+            ")\n"
+            "\n"
+            "\n"
+            "def strip_defensive(text: str) -> str:\n"
+            '    """去掉判定理由里的防御性措辞，并归并多余空白。"""\n'
+            "    for phrase in DEFENSIVE_PHRASES:\n"
+            '        text = text.replace(phrase, "")\n'
+            '    return " ".join(text.split()).strip()'
+        )
+        source = _replace_once(source, anchor, ins, "DEFENSIVE_PHRASES + strip_defensive")
+        applied.append("DEFENSIVE_PHRASES + strip_defensive")
+
     # ── 适配 1+2b：整体替换 read_records（仅当尚未包含区间筛选逻辑） ──────────
     if "range_active" not in source:
         marker = "def read_records("
@@ -359,6 +396,33 @@ def apply(source: str) -> tuple[str, list[str]]:
             "main 传入 title_extra",
         )
         applied.append("main 传入 title_extra")
+
+    # ── 适配 6b：删掉「视频平台 → 追加人工核验」注入点（关键词路径） ──────────
+    # 守卫用「待删除的那句话是否存在」做正向判断，天然幂等，且 6b / 6c 互不影响。
+    if 'notes.append("视频画面及完整语音需人工核验。")' in source:
+        old = (
+            "    link = record.link.lower()\n"
+            '    if any(d in link for d in ["douyin", "video.weibo", "bilibili", "haokan.baidu", "weixin.qq.com", "channels.weixin"]):\n'
+            '        notes.append("视频画面及完整语音需人工核验。")\n'
+            '    return labels[:4], " ".join(dict.fromkeys(notes))'
+        )
+        new = '    return labels[:4], strip_defensive(" ".join(dict.fromkeys(notes)))'
+        source = _replace_once(source, old, new, "防御性表述注入点（关键词路径）")
+        applied.append("删除防御性表述注入点（关键词路径）")
+
+    # ── 适配 6c：删掉同一注入点（classify_harm，连大模型结果也追加的那处） ────
+    if 'note = (note + " 视频画面及完整语音需人工核验。").strip()' in source:
+        old = (
+            "    labels, note = result\n"
+            "    link = record.link.lower()\n"
+            '    if any(d in link for d in ["douyin", "video.weibo", "bilibili", "haokan.baidu", "weixin.qq.com", "channels.weixin"]):\n'
+            '        if "视频" not in note:\n'
+            '            note = (note + " 视频画面及完整语音需人工核验。").strip()\n'
+            "    return labels, note"
+        )
+        new = "    labels, note = result\n    return labels, strip_defensive(note)"
+        source = _replace_once(source, old, new, "防御性表述注入点（classify_harm）")
+        applied.append("删除防御性表述注入点（classify_harm）")
 
     return source, applied
 

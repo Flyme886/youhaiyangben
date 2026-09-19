@@ -14,11 +14,11 @@
 
 | 文件 | 作用 |
 |---|---|
-| `apply_adaptations.py` | 【一次性】把新 clone 的仓库 `excel_to_word.py` 打上本任务做的 4 类适配（列名别名 / 编号区间筛选 / 批次标题与编号范围行 / 元信息加编号；内部拆成 12 个注入块）。幂等。 |
+| `apply_adaptations.py` | 【一次性】把新 clone 的仓库 `excel_to_word.py` 打上本任务做的 5 类适配（列名别名 / 编号区间筛选 / 批次标题与编号范围行 / 元信息加编号 / 去防御性表述；内部拆成 15 个注入块）。幂等。 |
 | `capture_douyin.js` | 由 `ego-browser nodejs <` 执行，单条抓取抖音视频页截图，结果逐条 append 到 `results*.jsonl`。配置驱动。 |
 | `run_capture.sh` | 分片驱动上面的抓取：每片 10–12 条、每片重建标签页、可断点续跑。 |
 | `build_manifest.py` | 合并 `links_manifest.json` + 所有 `results*.jsonl`，输出仓库要的 `screenshots_manifest.json`。 |
-| `verify_docx.py` | 生成后结构校验：条目数、全局连续编号、图片数、违规要素框数、元信息格式、无「举报理由草稿」。 |
+| `verify_docx.py` | 生成后结构校验：条目数、全局连续编号、图片数、违规要素框数、元信息格式、无「举报理由草稿」、**无防御性表述**（`defensive=N` 须为 0）。 |
 | `capture_config.example.json` | 抓取配置模板。**先复制成 `capture_config.json`** 再改路径（见第三节）。 |
 | `README.md` | 本文件。 |
 
@@ -122,5 +122,8 @@ $PY "$SHEETS/verify_docx.py" "$OUTDIR"
 - `ID_COLUMN_ALIASES = ["编号","id","ID"]` + `--id-min` / `--id-max` 区间筛选；`meta` 输出 `in_range_rows` / `out_of_range_rows`。
 - `--title`：批次标题追加区间标签，并在标题下加一行 `本批编号范围：X — Y　共 N 条`。
 - `Record.sheet_id`（存编号）；元信息行改为 `（编号400 · 原序号1234 · 抖音 · @作者）`；写入 `links_manifest.json`。
+- **去防御性表述**：删除仓库为所有视频平台链接追加「视频画面及完整语音需人工核验。」的两处注入点
+  （`_keyword_classify` + `classify_harm`），并注入 `DEFENSIVE_PHRASES` + `strip_defensive()` 兜底清洗
+  （大模型路径若产出同类措辞也会被剔除）。判定理由保持断言式，不做免责对冲。
 
 已适配的文件会先检测标记，全部命中则打印「已包含所有适配，未做任何改动」并退出；新 clone 上缺失的锚点会给出清晰报错与应手动添加的代码，不会静默出错。

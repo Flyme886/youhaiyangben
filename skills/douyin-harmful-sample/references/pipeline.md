@@ -47,7 +47,7 @@ WebFetch 该私有仓库会 404，只能先 clone 到本地再读 `engine/skills
 $PY "$SHEETS/apply_adaptations.py" "$ENG/scripts/excel_to_word.py"
 ```
 - 用法：`python apply_adaptations.py <fresh excel_to_word.py>`，或环境变量 `APPLY_TARGET`。
-- 注入 4 类适配（列名别名 / 编号区间 / `--title` 编号范围行 / 元信息加编号）；脚本内部拆成 12 个注入块。
+- 注入 5 类适配（列名别名 / 编号区间 / `--title` 编号范围行 / 元信息加编号 / 去防御性表述）；脚本内部拆成 15 个注入块。
 - 已含全部适配则打印「已包含所有适配，未做任何改动」并退出；可重复执行。
 
 ## ③ 取样 + 列映射/区间对账（`--dry-run`）
@@ -111,17 +111,20 @@ $PY "$ENG/scripts/excel_to_word.py" "$XLSX" \
 - `--batch-size`：每份条数，默认 `50`（本案 11 份 ×50，末批 1 条，全局连续 1–501）。
 - `--screenshots-manifest`：**必须指向上一步质检后的 `screenshot_quality_manifest.json`**，不是 ⑤ 的 manifest。
 - 未配 `DEEPSEEK_API_KEY` 时回退关键词规则（大量落到兜底文案，先与用户确认口径，见 SKILL.md）。
+- 判定理由**不含任何防御性表述**：仓库原会给所有视频平台链接追加「视频画面及完整语音需人工核验。」，
+  已被 `apply_adaptations.py` 的适配 5 删除注入点 + `strip_defensive()` 兜底清洗（见下节 ⑧ 校验）。
 
 ## ⑧ 结构校验
 
 ```bash
 $PY "$SHEETS/verify_docx.py" "$OUTDIR"     # 或用 VERIFY_DIR 环境变量
 ```
-逐项校验：每份 ≤50、全局连续编号、图片数==条目数、`【违规要素】`框数==条目数、元信息格式、无「举报理由草稿」。
+逐项校验：每份 ≤50、全局连续编号、图片数==条目数、`【违规要素】`框数==条目数、元信息格式、无「举报理由草稿」、
+**无防御性表述**（`defensive=N` 须为 0，否则退出码 2）。
 
 ## ⑨ 打包交付
 
-把 `第NN批.docx` + 日志（`处理日志.csv`/`截图状态汇总.csv`/`完成标记.json`/`screenshots/`）打成 zip，并写 `交付说明.md`（数据口径、4 类适配、判定口径与需人工复核条数、复现命令）。
+把 `第NN批.docx` + 日志（`处理日志.csv`/`截图状态汇总.csv`/`完成标记.json`/`screenshots/`）打成 zip，并写 `交付说明.md`（数据口径、5 类适配、判定口径与需人工复核条数、复现命令）。
 
 ---
 

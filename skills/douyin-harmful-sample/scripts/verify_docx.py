@@ -11,6 +11,7 @@
   - 【违规要素】表格数 == 条目数
   - 元信息形如：（编号400 · 原序号1234 · 抖音 · @作者）
   - 不得出现「举报理由草稿」
+  - 不得出现防御性/免责措辞（「需人工核验」「仅供参考」「以官方通报为准」等）
 
 用法：
   python verify_docx.py [OUTDIR]
@@ -31,6 +32,20 @@ NUM_RE = re.compile(r"^(\d+)、")
 META_RE = re.compile(r"^(\d+)、（编号[^·]* · 原序号[^·]* · [^·]* · @[^）]+）")
 BLIP = "{http://schemas.openxmlformats.org/drawingml/2006/main}blip"
 
+# 成品不应出现的防御性/免责措辞（与 apply_adaptations.py 的 DEFENSIVE_PHRASES 对齐）
+DEFENSIVE_PHRASES = (
+    "视频画面及完整语音需人工核验",
+    "需人工核验",
+    "需人工复核",
+    "仅供参考",
+    "请以官方通报为准",
+    "请以官方发布为准",
+)
+
+
+def _has_defensive(text: str) -> bool:
+    return any(phrase in text for phrase in DEFENSIVE_PHRASES)
+
 
 def check(path: Path) -> dict:
     doc = Document(path)
@@ -39,6 +54,7 @@ def check(path: Path) -> dict:
     placeholder = 0
     boxes = 0
     draft_leak = 0
+    defensive_leak = 0
     meta_mismatch = 0
     for p in doc.paragraphs:
         text = p.text.strip()
@@ -51,12 +67,16 @@ def check(path: Path) -> dict:
             placeholder += 1
         if "举报理由草稿" in text:
             draft_leak += 1
+        if _has_defensive(text):
+            defensive_leak += 1
         images += len(p._element.findall(f".//{BLIP}"))
     for t in doc.tables:
         for row in t.rows:
             for cell in row.cells:
                 if "【违规要素】" in cell.text:
                     boxes += 1
+                if _has_defensive(cell.text):
+                    defensive_leak += 1
     # 逐份连续：以该份首个编号起算（正确处理全局连续、非每份从 1 起的情况）
     continuous = (
         numbers == list(range(numbers[0], numbers[0] + len(numbers)))
@@ -73,6 +93,7 @@ def check(path: Path) -> dict:
         "eval_boxes": boxes,
         "meta_mismatch": meta_mismatch,
         "draft_leak": draft_leak,
+        "defensive_leak": defensive_leak,
     }
 
 
@@ -101,10 +122,13 @@ def main() -> int:
             bad.append("image_mismatch")
         if r["meta_mismatch"]:
             bad.append(f"meta_mismatch({r['meta_mismatch']})")
+        if r["defensive_leak"]:
+            bad.append(f"defensive_leak({r['defensive_leak']})")
         ok = ok and not bad
         print(
             f"{r['file']}: items={r['items']} continuous={r['continuous']} images={r['images']} "
             f"placeholder={r['placeholders']} boxes={r['eval_boxes']} meta_mismatch={r['meta_mismatch']} "
+            f"defensive={r['defensive_leak']} "
             f"{'OK' if not bad else 'ISSUES:' + ','.join(bad)}"
         )
 
