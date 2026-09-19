@@ -14,7 +14,7 @@
 
 | 文件 | 作用 |
 |---|---|
-| `apply_adaptations.py` | 【一次性】把新 clone 的仓库 `excel_to_word.py` 打上本任务做的 5 类适配（列名别名 / 编号区间筛选 / 批次标题与编号范围行 / 元信息加编号 / 去防御性表述；内部拆成 15 个注入块）。幂等。 |
+| `apply_adaptations.py` | 把仓库 `excel_to_word.py` 打上 5 类适配（列名别名 / 编号区间筛选 / 批次标题与编号范围行 / 元信息加编号 / 去防御性表述；内部拆成 15 个注入块）。**本仓库该文件已预置，故正常跑只会打印「已包含所有适配」**；它的实际用途是「万一被回退成上游版」或「复用到别的上游 clone」。幂等。 |
 | `capture_douyin.js` | 由 `ego-browser nodejs <` 执行，单条抓取抖音视频页截图，结果逐条 append 到 `results*.jsonl`。配置驱动。 |
 | `run_capture.sh` | 分片驱动上面的抓取：每片 10–12 条、每片重建标签页、可断点续跑。 |
 | `build_manifest.py` | 合并 `links_manifest.json` + 所有 `results*.jsonl`，输出仓库要的 `screenshots_manifest.json`。 |
@@ -34,7 +34,7 @@ OUTDIR="$HOME/有害样本输出/输出Word"                     # Word/截图/�
 XLSX="<原 Excel 路径>"
 SHEETS="$HOME/.workbuddy/skills/douyin-harmful-sample/scripts"   # 本 skill 的 scripts 目录
 
-# ① 一次性：给新 clone 的 excel_to_word.py 打适配（已打过则自动跳过）
+# ① 幂等兜底：仓库 excel_to_word.py 已预置 5 类适配，这步通常输出「已包含所有适配」直接跳过
 $PY "$SHEETS/apply_adaptations.py" "$ENG/scripts/excel_to_word.py"
 # ② 取样 + 列映射/区间校验，并写出 links_manifest.json
 $PY "$ENG/scripts/excel_to_word.py" "$XLSX" \
@@ -127,3 +127,7 @@ $PY "$SHEETS/verify_docx.py" "$OUTDIR"
   （大模型路径若产出同类措辞也会被剔除）。判定理由保持断言式，不做免责对冲。
 
 已适配的文件会先检测标记，全部命中则打印「已包含所有适配，未做任何改动」并退出；新 clone 上缺失的锚点会给出清晰报错与应手动添加的代码，不会静默出错。
+
+> **仓库侧现状**：`youhaiyangben/skills/harmful_sample/scripts/excel_to_word.py` **已预置上述 5 类适配**，
+> 因此正常流程里第 ① 步是个 no-op。要改适配逻辑请改本脚本 `apply_adaptations.py` 再重跑，
+> 不要直接手改仓库脚本——手改会让「注入 + 手改」混杂，换 clone 后无法复现。

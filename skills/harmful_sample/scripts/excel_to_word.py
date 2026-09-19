@@ -36,7 +36,47 @@ DEFAULT_TEMPLATE = SKILL_DIR / "assets" / "template.docx"
 REQUIRED_COLUMNS = ["标题/微博内容", "原文/评论链接", "原文作者"]
 OPTIONAL_COLUMNS = ["转发/评论作者", "来源网站", "序号"]
 BLANK_VALUES = {"", "无", "none", "null", "nan"}
+
+# 列名别名映射（扩展，不改动原判定逻辑）：兼容「粉丝排序」类导出的列名
+COLUMN_ALIASES: dict[str, list[str]] = {
+    "标题/微博内容": ["标题/微博内容", "标题", "内容", "文本"],
+    "原文/评论链接": ["原文/评论链接", "URL", "url", "Url", "链接", "原文链接", "评论链接"],
+    "原文作者": ["原文作者", "作者", "昵称", "账号"],
+    "转发/评论作者": ["转发/评论作者", "转发作者", "评论作者"],
+    "来源网站": ["来源网站", "平台"],
+    "序号": ["序号"],
+    "摘要": ["摘要", "概括"],
+    "涉及词": ["涉及词", "关键词"],
+    "行业一级": ["行业一级", "行业", "领域"],
+    "行业二级": ["行业二级", "子行业"],
+}
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+# 用于 --id-min/--id-max 区间筛选的列（粉丝排序导出为 编号）
+ID_COLUMN_ALIASES = ["编号", "id", "ID"]
+
+# 判定理由中的防御性/免责措辞：统一剔除，成品不出现「需人工核验」类对冲表述
+DEFENSIVE_PHRASES = (
+    "视频画面及完整语音需人工核验。",
+    "视频画面及完整语音需人工核验",
+    "需人工核验。",
+    "需人工核验",
+    "需人工复核。",
+    "需人工复核",
+    "仅供参考。",
+    "仅供参考",
+    "请以官方通报为准。",
+    "请以官方通报为准",
+    "请以官方发布为准。",
+    "请以官方发布为准",
+)
+
+
+def strip_defensive(text: str) -> str:
+    """去掉判定理由里的防御性措辞，并归并多余空白。"""
+    for phrase in DEFENSIVE_PHRASES:
+        text = text.replace(phrase, "")
+    return " ".join(text.split()).strip()
 
 LABEL_FALSE_INFO = "编造虚假信息"
 LABEL_DISTORT = "歪曲事实"
@@ -97,6 +137,7 @@ class Record:
     title: str
     author: str
     link: str
+    sheet_id: str = ""
     summary: str = ""
     keywords: str = ""
     industry: str = ""
@@ -148,7 +189,12 @@ def pick_sheet(workbook: Any, requested: str | None) -> Any:
     return workbook[workbook.sheetnames[0]]
 
 
-def read_records(excel_path: Path, sheet_name: str | None) -> tuple[list[Record], list[RowLog], dict[str, Any]]:
+def read_records(
+    excel_path: Path,
+    sheet_name: str | None,
+    id_min: int | None = None,
+    id_max: int | None = None,
+) -> tuple[list[Record], list[RowLog], dict[str, Any]]:
     workbook = load_workbook(excel_path, read_only=True, data_only=True)
     worksheet = pick_sheet(workbook, sheet_name)
     rows = worksheet.iter_rows(values_only=True)
@@ -158,15 +204,44 @@ def read_records(excel_path: Path, sheet_name: str | None) -> tuple[list[Record]
         raise SystemExit("Workbook sheet is empty.")
 
     headers = [as_text(v) for v in header_row]
-    index = {name: i for i, name in enumerate(headers) if name}
+    raw_index = {name: i for i, name in enumerate(headers) if name}
+
+    # 通过别名把实际列名解析到脚本使用的规范列名
+    index: dict[str, int] = {}
+    alias_hits: dict[str, str] = {}
+    for canonical, aliases in COLUMN_ALIASES.items():
+        for alias in aliases:
+            if alias in raw_index:
+                index[canonical] = raw_index[alias]
+                alias_hits[canonical] = alias
+                break
+
     missing = [name for name in REQUIRED_COLUMNS if name not in index]
     if missing:
-        raise SystemExit("Missing required column(s): " + ", ".join(missing))
+        raise SystemExit(
+            "Missing required column(s): " + ", ".join(missing)
+            + " | workbook headers: " + ", ".join(headers)
+        )
+
+    id_pos: int | None = None
+    for alias in ID_COLUMN_ALIASES:
+        if alias in raw_index:
+            id_pos = raw_index[alias]
+            break
+
+    range_active = id_min is not None or id_max is not None
+    if range_active and id_pos is None:
+        raise SystemExit(
+            "--id-min/--id-max requires an id column; none of "
+            + ", ".join(ID_COLUMN_ALIASES) + " found in headers."
+        )
 
     seen: dict[str, int] = {}
     records: list[Record] = []
     logs: list[RowLog] = []
     data_rows = 0
+    in_range_rows = 0
+    out_of_range_rows = 0
 
     def cell(row: tuple[Any, ...], column: str) -> str:
         if column not in index:
@@ -180,6 +255,19 @@ def read_records(excel_path: Path, sheet_name: str | None) -> tuple[list[Record]
         if row is None or all(is_blank(as_text(v)) for v in row):
             continue
         data_rows += 1
+
+        if range_active:
+            raw_id = row[id_pos] if id_pos < len(row) else None
+            try:
+                id_value = int(str(raw_id).strip())
+            except (TypeError, ValueError):
+                out_of_range_rows += 1
+                continue
+            if (id_min is not None and id_value < id_min) or (id_max is not None and id_value > id_max):
+                out_of_range_rows += 1
+                continue
+        in_range_rows += 1
+
         link = cell(row, "原文/评论链接")
         if is_blank(link):
             logs.append(RowLog(offset, "", "skipped_missing_link", "", "", "", "", "missing link"))
@@ -201,6 +289,7 @@ def read_records(excel_path: Path, sheet_name: str | None) -> tuple[list[Record]
             title=cell(row, "标题/微博内容"),
             author=author,
             link=link,
+            sheet_id=(str(row[id_pos]).strip() if range_active and id_pos is not None and id_pos < len(row) else ""),
             summary=cell(row, "摘要"),
             keywords=cell(row, "涉及词"),
             industry=cell(row, "行业一级"),
@@ -212,10 +301,14 @@ def read_records(excel_path: Path, sheet_name: str | None) -> tuple[list[Record]
     meta = {
         "excel_path": str(excel_path),
         "sheet": worksheet.title,
+        "id_range": [id_min, id_max] if range_active else None,
         "total_data_rows": data_rows,
+        "in_range_rows": in_range_rows,
+        "out_of_range_rows": out_of_range_rows,
         "unique_records": len(records),
         "duplicate_rows": sum(1 for log in logs if log.status == "duplicate"),
         "skipped_missing_link": sum(1 for log in logs if log.status == "skipped_missing_link"),
+        "column_alias_map": alias_hits,
     }
     return records, logs, meta
 
@@ -242,6 +335,7 @@ def write_links_manifest(records: list[Record], output_dir: Path, meta: dict[str
         "items": [
             {
                 "item_id": r.item_id,
+                "sheet_id": r.sheet_id,
                 "source_row": r.source_row,
                 "original_no": r.original_no,
                 "source": r.source,
@@ -408,10 +502,7 @@ def _keyword_classify(record: Record, screenshot: dict[str, str]) -> tuple[list[
     if not labels:
         labels.append(LABEL_AGITATE)
         notes.append("借热点事件发布负面情绪化内容。")
-    link = record.link.lower()
-    if any(d in link for d in ["douyin", "video.weibo", "bilibili", "haokan.baidu", "weixin.qq.com", "channels.weixin"]):
-        notes.append("视频画面及完整语音需人工核验。")
-    return labels[:4], " ".join(dict.fromkeys(notes))
+    return labels[:4], strip_defensive(" ".join(dict.fromkeys(notes)))
 
 
 def _image_b64(path: Path) -> Optional[str]:
@@ -504,11 +595,7 @@ def classify_harm(
         result = _keyword_classify(record, screenshot)
 
     labels, note = result
-    link = record.link.lower()
-    if any(d in link for d in ["douyin", "video.weibo", "bilibili", "haokan.baidu", "weixin.qq.com", "channels.weixin"]):
-        if "视频" not in note:
-            note = (note + " 视频画面及完整语音需人工核验。").strip()
-    return labels, note
+    return labels, strip_defensive(note)
 
 
 def add_blank_screenshot_placeholder(doc: Document, reason: str, status: str = "not_captured") -> None:
@@ -559,11 +646,16 @@ def add_record(
     p.paragraph_format.space_after = Pt(1)
     rn = p.add_run(f"{record.item_id}、")
     set_run_font_ex(rn, size=11.5, bold=True)
-    meta = f"（原序号{record.original_no}"
+    meta = "（"
+    if record.sheet_id:
+        meta += f"编号{record.sheet_id} · "
+    meta += f"原序号{record.original_no}"
     if record.source:
         meta += f" · {record.source}"
     if record.author:
-        meta += f" · @{record.author}"
+        author_txt = record.author.lstrip("@").strip()
+        if author_txt:
+            meta += f" · @{author_txt}"
     meta += "）"
     rm = p.add_run(meta)
     set_run_font_ex(rm, size=9, color=(136, 136, 136))
@@ -626,6 +718,7 @@ def build_docx_batches(
     template: Path,
     screenshots: dict[str, dict[str, str]],
     screenshot_root: Path,
+    title_extra: str = "",
 ) -> list[Path]:
     if not template.exists():
         raise SystemExit(f"Template not found: {template}")
@@ -661,9 +754,18 @@ def build_docx_batches(
         clear_document_body(doc)
         apply_doc_style(doc)
         title = doc.add_paragraph()
-        run = title.add_run(f"舆情有害样本（第{batch_index + 1:02d}批）")
+        head = f"舆情有害样本（第{batch_index + 1:02d}批）"
+        if title_extra:
+            head += f"　{title_extra}"
+        run = title.add_run(head)
         run.bold = True
         set_run_font_ex(run, size=16, bold=True, font="黑体")
+        span_ids = [r.sheet_id for r in chunk if r.sheet_id]
+        if span_ids:
+            sub = doc.add_paragraph()
+            sub.paragraph_format.space_after = Pt(6)
+            srun = sub.add_run(f"本批编号范围：{span_ids[0]} — {span_ids[-1]}\u3000共 {len(chunk)} 条")
+            set_run_font_ex(srun, size=9, color=(120, 120, 120))
         for record in chunk:
             filename = f"第{batch_index + 1:02d}批.docx"
             record.output_file = filename
@@ -792,6 +894,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sheet", help="Worksheet name. Defaults to 搜索结果 when present.")
     parser.add_argument("--batch-size", type=int, default=50)
     parser.add_argument("--limit", type=int, help="Limit unique records for testing.")
+    parser.add_argument("--id-min", type=int, help="Only keep rows whose id column (编号) >= this value.")
+    parser.add_argument("--id-max", type=int, help="Only keep rows whose id column (编号) <= this value.")
+    parser.add_argument("--title", help="Optional label added to each batch title, e.g. '编号400-900'.")
     parser.add_argument("--dry-run", action="store_true", help="Validate/read Excel and write links_manifest.json only.")
     parser.add_argument("--screenshots-manifest", type=Path, help="screenshots_manifest.json from capture_links.py")
     parser.add_argument("--template", type=Path, default=DEFAULT_TEMPLATE)
@@ -811,7 +916,7 @@ def main() -> int:
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    records, logs, meta = read_records(excel_path, args.sheet)
+    records, logs, meta = read_records(excel_path, args.sheet, args.id_min, args.id_max)
     if args.limit:
         records = records[: args.limit]
         keep_ids = {record.item_id for record in records}
@@ -841,6 +946,7 @@ def main() -> int:
         args.template.resolve(),
         screenshots,
         screenshot_root.resolve(),
+        title_extra=args.title or "",
     )
     update_logs(logs, records)
     log_path = write_log(logs, output_dir)

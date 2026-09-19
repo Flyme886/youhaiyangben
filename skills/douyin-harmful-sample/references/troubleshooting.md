@@ -115,5 +115,7 @@
 - **口径**：判定理由应当是**断言**，不是免责对冲。这是典型的防御性表述，成品不要。
 - **处置**：`apply_adaptations.py` 的适配 5 删除上述两处注入点，并注入 `DEFENSIVE_PHRASES` +
   `strip_defensive()` 兜底清洗（含大模型路径，防止以后启用 `DEEPSEEK_API_KEY` 时又冒出同类措辞）。
+  **本仓库的 `skills/harmful_sample/scripts/excel_to_word.py` 已预置该修复**，clone 下来即已生效；
+  只有在该文件被回退成上游原始版时才需要重跑 `apply_adaptations.py`。
 - **校验**：`verify_docx.py` 会统计 `defensive=N`，**必须为 0**，否则退出码 2。
   注意规则未命中时的回落文案「依据文案及页面文字判定为有害样本。」是断言、不是对冲，不算违规。

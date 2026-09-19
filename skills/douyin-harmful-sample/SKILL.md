@@ -74,9 +74,9 @@ SHEETS=<本skill>/scripts            # capture_douyin.js / run_capture.sh / buil
 ENG=<clone>/skills/harmful_sample   # 仓库脚本：excel_to_word.py / quality_check_screenshots.py
 OUTDIR=<输出Word目录>  XLSX=<原表.xlsx>
 
-# 1) 克隆 + 打补丁（apply_adaptations.py 幂等，重复跑不改）
+# 1) 克隆。仓库自带 excel_to_word.py 已预置 5 类适配，下面这步通常直接打印「已包含所有适配」
 git clone https://github.com/Flyme886/youhaiyangben.git engine && rm -rf engine/.git
-$PY "$SHEETS/apply_adaptations.py" "$ENG/scripts/excel_to_word.py"
+$PY "$SHEETS/apply_adaptations.py" "$ENG/scripts/excel_to_word.py"   # 幂等兜底，可重复跑
 
 # 2) 取样 + 列映射/区间对账（--dry-run 只出 links_manifest.json）
 $PY "$ENG/scripts/excel_to_word.py" "$XLSX" \
@@ -113,6 +113,15 @@ $PY "$SHEETS/verify_docx.py" "$OUTDIR"
 5. **去防御性表述**：见下节。
 
 > 脚本内部把上述 5 类拆成 15 个幂等注入块，全部命中即打印「已包含所有适配」并退出。
+
+### 仓库脚本与补丁脚本怎么分工
+
+- **本仓库 `youhaiyangben` 的 `skills/harmful_sample/scripts/excel_to_word.py` 已预置上述 5 类适配**，
+  clone 下来即可直接用，**不必**先打补丁。
+- `apply_adaptations.py` 仍然保留，用途有两个：① 万一该文件被回退成上游原始版，一条命令重新打全；
+  ② 把这套流程复用到**其它**上游 clone 上。它幂等——对已适配的文件只打印「已包含所有适配」。
+- **调整适配逻辑请改 `apply_adaptations.py` 再重跑**，不要直接在仓库脚本上手改。
+  否则会变成「一半手改、一半注入」，换个 clone 就无法复现。
 
 ## 判定理由：不要任何防御性表述
 
@@ -162,5 +171,5 @@ $PY "$SHEETS/verify_docx.py" "$OUTDIR"
 - 不要并发抓抖音。
 - 不要改 `page.goto` 的 `waitUntil`。
 - 不要把 `截图待补` 算作失败。
-- 不要改本 skill `scripts/` 下的脚本；仓库侧的 `excel_to_word.py` 一律**通过 `apply_adaptations.py` 打补丁**，不要手工编辑（否则换新 clone 后无法复现）。
+- 不要手改仓库侧的 `excel_to_word.py`（该文件已由 `apply_adaptations.py` 预置 5 类适配）；要调整适配逻辑请改 `apply_adaptations.py` 并重跑，保证任何 clone 都能复现。
 - 不要往 Word 里写未从 Excel/页面提取出的事实内容。

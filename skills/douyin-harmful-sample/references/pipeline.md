@@ -41,14 +41,17 @@ git clone https://github.com/Flyme886/youhaiyangben.git engine && rm -rf engine/
 ```
 WebFetch 该私有仓库会 404，只能先 clone 到本地再读 `engine/skills/harmful_sample/`。
 
-## ② 打补丁（幂等，只需一次）
+## ② 打补丁（幂等；本仓库已预置，通常直接跳过）
 
 ```bash
 $PY "$SHEETS/apply_adaptations.py" "$ENG/scripts/excel_to_word.py"
 ```
+- **本仓库 `youhaiyangben` 的该文件已预置全部 5 类适配**，所以这一步一般直接打印
+  「已包含所有适配，未做任何改动」并退出——属正常，不是失败。
 - 用法：`python apply_adaptations.py <fresh excel_to_word.py>`，或环境变量 `APPLY_TARGET`。
 - 注入 5 类适配（列名别名 / 编号区间 / `--title` 编号范围行 / 元信息加编号 / 去防御性表述）；脚本内部拆成 15 个注入块。
-- 已含全部适配则打印「已包含所有适配，未做任何改动」并退出；可重复执行。
+- 该文件若被回退成上游原始版，或要把流程复用到别的上游 clone，跑这一条即可重新打全。可重复执行。
+- **要改适配逻辑就改 `apply_adaptations.py` 再重跑**，不要手改仓库脚本（否则不可复现）。
 
 ## ③ 取样 + 列映射/区间对账（`--dry-run`）
 
