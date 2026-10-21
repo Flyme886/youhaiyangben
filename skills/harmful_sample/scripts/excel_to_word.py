@@ -53,7 +53,7 @@ COLUMN_ALIASES: dict[str, list[str]] = {
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 # 用于 --id-min/--id-max 区间筛选的列（粉丝排序导出为 编号）
-ID_COLUMN_ALIASES = ["编号", "id", "ID"]
+ID_COLUMN_ALIASES = ["编号", "新编", "新编号", "id", "ID"]
 
 # 判定理由中的防御性/免责措辞：统一剔除，成品不出现「需人工核验」类对冲表述
 DEFENSIVE_PHRASES = (
@@ -126,6 +126,68 @@ REASON_PATTERNS: list[tuple[str, list[str], str]] = [
         "上纲攻击高校管理和教育制度。",
     ),
 ]
+
+# ── 本案关键词扩展（数据驱动，可选；不改动上方通用规则） ─────────────────────
+# 判定关键词是按案件定制的：用 CASE_KEYWORD_FILE 指向的 JSON 覆盖/追加 REASON_PATTERNS，
+# 并可按案件替换「未命中」时的兜底文案。不提供 JSON 时行为与上游完全一致。
+# JSON 结构：{"patterns": [{"label": "…", "note": "…", "words": ["…"]}],
+#             "fallback": {"label": "…", "note": "…"}}
+CASE_KEYWORD_FILE = os.environ.get("CASE_KEYWORD_FILE", "")
+CASE_KEYWORD_APPLIED: list[str] = []
+CASE_FALLBACK_LABEL = ""
+CASE_FALLBACK_NOTE = ""
+_CASE_KEYWORDS_LOADED = False
+
+# 判定方式：auto（先大模型，失败回退关键词）| keyword（只走关键词）| llm（同 auto）
+CLASSIFY_MODE = os.environ.get("CLASSIFY_MODE", "").strip().lower()
+
+
+def _resolved_classify_mode() -> str:
+    """决定 classify_harm 用哪条判定路径。
+
+    CLASSIFY_MODE 显式取值优先；未设置时，若已加载本案关键词文件则用 keyword
+    （案件关键词优先，且不产生任何大模型调用），否则沿用上游 auto。
+    """
+    if CLASSIFY_MODE in {"auto", "keyword", "llm"}:
+        return CLASSIFY_MODE
+    return "keyword" if CASE_KEYWORD_APPLIED else "auto"
+
+
+def _apply_case_keywords() -> None:
+    """把案件关键词 JSON 合并进 REASON_PATTERNS（幂等，只会真正执行一次）。"""
+    global CASE_FALLBACK_LABEL, CASE_FALLBACK_NOTE, _CASE_KEYWORDS_LOADED
+    if _CASE_KEYWORDS_LOADED:
+        return
+    _CASE_KEYWORDS_LOADED = True
+    path = CASE_KEYWORD_FILE
+    if not path:
+        candidate = Path(__file__).with_name("case_keywords.json")
+        path = str(candidate) if candidate.exists() else ""
+    if not path or not os.path.exists(path):
+        return
+    try:
+        with open(path, encoding="utf-8") as fh:
+            payload = json.load(fh)
+    except Exception:
+        return
+    for entry in payload.get("patterns") or []:
+        label = as_text(entry.get("label", ""))
+        words = [as_text(w) for w in (entry.get("words") or []) if as_text(w)]
+        note = as_text(entry.get("note", ""))
+        if not label or not words:
+            continue
+        for idx, (lbl, existed, old_note) in enumerate(REASON_PATTERNS):
+            if lbl == label:
+                merged = list(existed) + [w for w in words if w not in existed]
+                REASON_PATTERNS[idx] = (lbl, merged, note or old_note)
+                break
+        else:
+            REASON_PATTERNS.append((label, words, note))
+        CASE_KEYWORD_APPLIED.append(label)
+    fallback = payload.get("fallback") or {}
+    CASE_FALLBACK_LABEL = as_text(fallback.get("label", ""))
+    CASE_FALLBACK_NOTE = as_text(fallback.get("note", ""))
+
 
 
 @dataclass
@@ -289,7 +351,7 @@ def read_records(
             title=cell(row, "标题/微博内容"),
             author=author,
             link=link,
-            sheet_id=(str(row[id_pos]).strip() if range_active and id_pos is not None and id_pos < len(row) else ""),
+            sheet_id=(str(row[id_pos]).strip() if id_pos is not None and id_pos < len(row) else ""),
             summary=cell(row, "摘要"),
             keywords=cell(row, "涉及词"),
             industry=cell(row, "行业一级"),
@@ -309,6 +371,7 @@ def read_records(
         "duplicate_rows": sum(1 for log in logs if log.status == "duplicate"),
         "skipped_missing_link": sum(1 for log in logs if log.status == "skipped_missing_link"),
         "column_alias_map": alias_hits,
+        "case_keyword_applied": CASE_KEYWORD_APPLIED,
     }
     return records, logs, meta
 
@@ -475,6 +538,9 @@ def first_chars(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rstrip() + "..."
 
 
+_apply_case_keywords()
+
+
 def combined_evidence(record: Record, screenshot: dict[str, str]) -> str:
     return compact_join(
         [
@@ -500,8 +566,8 @@ def _keyword_classify(record: Record, screenshot: dict[str, str]) -> tuple[list[
             labels.append(label)
             notes.append(note)
     if not labels:
-        labels.append(LABEL_AGITATE)
-        notes.append("借热点事件发布负面情绪化内容。")
+        labels.append(CASE_FALLBACK_LABEL or LABEL_AGITATE)
+        notes.append(CASE_FALLBACK_NOTE or "借热点事件发布负面情绪化内容。")
     return labels[:4], strip_defensive(" ".join(dict.fromkeys(notes)))
 
 
@@ -590,12 +656,59 @@ def classify_harm(
                 image_path = p
 
     page_text = screenshot.get("page_text") or screenshot.get("screenshot_text") or ""
-    result = _llm_classify(record.title, page_text, image_path)
-    if result is None:
+    if _resolved_classify_mode() == "keyword":
         result = _keyword_classify(record, screenshot)
+    else:
+        result = _llm_classify(record.title, page_text, image_path)
+        if result is None:
+            result = _keyword_classify(record, screenshot)
 
     labels, note = result
     return labels, strip_defensive(note)
+
+
+def _png_pixel_width(path):
+    """读 PNG 像素宽；失败返回 0。避免引入 Pillow 依赖。"""
+    try:
+        with open(str(path), "rb") as fh:
+            head = fh.read(33)
+        if head[:8] == b"\x89PNG\r\n\x1a\n":
+            import struct as _struct
+            return int(_struct.unpack(">II", head[16:24])[0])
+    except Exception:
+        pass
+    return 0
+
+
+def _png_pixel_height(path):
+    """读 PNG 像素高；失败返回 0（IHDR 头 20:24 字节）。"""
+    try:
+        with open(str(path), "rb") as fh:
+            head = fh.read(33)
+        if head[:8] == b"\x89PNG\r\n\x1a\n":
+            import struct as _struct
+            return int(_struct.unpack(">I", head[20:24])[0])
+    except Exception:
+        pass
+    return 0
+
+
+def image_insert_width_cm(path, px_per_cm=0.030, lo=8.5, hi=16.6, default=13.5):
+    """按图片像素宽推导插入宽度(cm)。
+
+    0.030 cm/px 的标定：评论侧栏截图约 300px 宽 → 约 9cm，评论正文字号
+    约 4.2mm（A4 上清晰可读）；通栏评论截图约 790px 宽 → 会被 hi 封顶到
+    16.6cm（左右各留 2cm 页边距时的可用宽度），字号约 2.9mm。
+    """
+    w = _png_pixel_width(path)
+    if not w:
+        return default
+    h = _png_pixel_height(path)
+    width = min(hi, w * px_per_cm)
+    if h and h > w:
+        # 竖版截图按高度 20.5cm 限幅，避免单图超过一页
+        width = min(width, 20.5 * w / h)
+    return max(lo, width)
 
 
 def add_blank_screenshot_placeholder(doc: Document, reason: str, status: str = "not_captured") -> None:
@@ -609,9 +722,8 @@ def add_blank_screenshot_placeholder(doc: Document, reason: str, status: str = "
     color, prefix = STATUS_STYLE.get(status, ((128, 128, 128), "截图待补"))
     p = doc.add_paragraph()
     p.paragraph_format.space_after = Pt(2)
-    display = f"{prefix}：{reason}" if reason and reason not in {"not captured", "not_captured"} else prefix
-    run = p.add_run(display)
-    set_run_font_ex(run, size=9.5, color=color)
+    # 截图缺失/不可用时：正文只留空白，不写任何说明性文字（状态见日志 CSV）
+    return
 
 
 def add_evaluation_box(doc: Document, labels: list[str], note: str) -> None:
@@ -638,42 +750,24 @@ def add_record(
     screenshot_root: Path,
     pre_harm: Optional[tuple[list[str], str]] = None,
 ) -> None:
-    if record.item_id > 1:
-        doc.add_paragraph("")
+    # MINIMAL_LAYOUT_V1 极简交付版式：每条仅「N.标题 / 链接 / 图片」三段，
+    # 无元信息、无原文全文、无【概括】、无任何说明文字。
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(2)
+    title_text = " ".join(as_text(record.title).split())
+    if not title_text:
+        title_text = " ".join(as_text(record.summary).split())
+    if len(title_text) > 32:
+        title_text = title_text[:32].rstrip() + "…"
+    if not title_text:
+        title_text = "（无标题）"
+    rt = p.add_run(f"{record.item_id}.{title_text}")
+    set_run_font_ex(rt, size=12, bold=True, color=(31, 78, 121))
 
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(8)
-    p.paragraph_format.space_after = Pt(1)
-    rn = p.add_run(f"{record.item_id}、")
-    set_run_font_ex(rn, size=11.5, bold=True)
-    meta = "（"
-    if record.sheet_id:
-        meta += f"编号{record.sheet_id} · "
-    meta += f"原序号{record.original_no}"
-    if record.source:
-        meta += f" · {record.source}"
-    if record.author:
-        author_txt = record.author.lstrip("@").strip()
-        if author_txt:
-            meta += f" · @{author_txt}"
-    meta += "）"
-    rm = p.add_run(meta)
-    set_run_font_ex(rm, size=9, color=(136, 136, 136))
-    if record.summary:
-        rs = p.add_run("【概括】" + first_chars(record.summary, 40))
-        set_run_font_ex(rs, size=11, bold=True, color=(31, 55, 100))
-
-    p = doc.add_paragraph()
-    label = p.add_run("原文：")
-    set_run_font_ex(label, size=9, bold=True)
-    body = p.add_run(record.title)
-    set_run_font_ex(body, size=10.5)
-
-    p = doc.add_paragraph()
-    label = p.add_run("链接：")
-    set_run_font_ex(label, size=9, bold=True)
-    link_run = p.add_run(record.link)
-    set_run_font_ex(link_run, size=8.5, color=(5, 99, 193))
+    p.paragraph_format.space_after = Pt(4)
+    rl = p.add_run(record.link)
+    set_run_font_ex(rl, size=9.5, color=(11, 96, 176))
 
     status = as_text(screenshot.get("status") or "not_captured")
     quality = as_text(screenshot.get("quality") or ("usable" if screenshot.get("screenshot_path") else "unusable"))
@@ -684,31 +778,36 @@ def add_record(
     record.screenshot_reason = reason
     record.screenshot_path = image_path_text
 
-    if image_path_text and quality in {"usable", "needs_review"}:
-        image_path = Path(image_path_text)
-        if not image_path.is_absolute():
-            image_path = screenshot_root / image_path
-        if image_path.exists():
+    # 多图：images 优先（评论截图一条多张），退化到单张 screenshot_path
+    image_list = [as_text(x) for x in (screenshot.get("images") or []) if as_text(x)]
+    if not image_list and image_path_text:
+        image_list = [image_path_text]
+    inserted = 0
+    if image_list and quality in {"usable", "needs_review"}:
+        for _img_i, _img_fn in enumerate(image_list):
+            image_path = Path(_img_fn)
+            if not image_path.is_absolute():
+                image_path = screenshot_root / image_path
+            if not image_path.exists():
+                continue
             try:
                 p = doc.add_paragraph()
                 p.paragraph_format.space_after = Pt(3)
                 run = p.add_run()
-                run.add_picture(str(image_path), width=Cm(13.5))
+                run.add_picture(
+                    str(image_path), width=Cm(image_insert_width_cm(image_path, hi=16.0))
+                )
+                inserted += 1
             except Exception as exc:
-                add_blank_screenshot_placeholder(doc, f"insert_error: {exc}", status="insert_error")
                 record.screenshot_status = "insert_error"
                 record.screenshot_reason = str(exc)
-        else:
-            add_blank_screenshot_placeholder(doc, f"missing_file: {image_path}", status="missing_file")
-            record.screenshot_status = "missing_file"
-            record.screenshot_reason = str(image_path)
-    else:
+    if not inserted:
         add_blank_screenshot_placeholder(doc, quality_reason or reason, status=status)
 
     labels, note = pre_harm if pre_harm is not None else classify_harm(record, screenshot, screenshot_root)
     record.harm_categories = labels
     record.harm_note = note
-    add_evaluation_box(doc, labels, note)
+    # MINIMAL_LAYOUT_V1：判定结果只进 处理日志.csv 对账，不再渲染【违规要素】框。
 
 
 def build_docx_batches(
@@ -753,19 +852,7 @@ def build_docx_batches(
         doc = Document(template)
         clear_document_body(doc)
         apply_doc_style(doc)
-        title = doc.add_paragraph()
-        head = f"舆情有害样本（第{batch_index + 1:02d}批）"
-        if title_extra:
-            head += f"　{title_extra}"
-        run = title.add_run(head)
-        run.bold = True
-        set_run_font_ex(run, size=16, bold=True, font="黑体")
-        span_ids = [r.sheet_id for r in chunk if r.sheet_id]
-        if span_ids:
-            sub = doc.add_paragraph()
-            sub.paragraph_format.space_after = Pt(6)
-            srun = sub.add_run(f"本批编号范围：{span_ids[0]} — {span_ids[-1]}\u3000共 {len(chunk)} 条")
-            set_run_font_ex(srun, size=9, color=(120, 120, 120))
+        # MINIMAL_LAYOUT_V1：不渲染批次标题与「本批编号范围」行（--title 仍接受但不落版）。
         for record in chunk:
             filename = f"第{batch_index + 1:02d}批.docx"
             record.output_file = filename
