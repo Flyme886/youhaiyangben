@@ -82,7 +82,9 @@ zsh $MP/run.sh <xlsx> <outdir> [--prefix 名字] [--batch 50] [--space 空间名
 | B站 | `t.bilibili.com/{id}` 或 `bilibili.com/video/BV…` | 动态页有登录浮层，不挡正文 |
 | 贴吧、微信、头条、搜狐、酷安 | 原地址 | 基本直开 |
 
-**小红书必须带 token。** 监测表导出的 `discovery/item/{id}` 不含 `xsec_token`，直开一律 404，换 `explore/` 也一样。补法：登录态下站内搜索 `search_result?keyword=…`，结果卡片的 `<a href>` 里带真实 token，回收后拼成 `explore/{id}?xsec_token=…`。关键词按「事件实体 + 书名 / ISBN / 机构」组合多轮搜。搜不到、进作者主页也加载不出的，判为已删或私密，留白。
+**小红书必须带 token。** 监测表导出的 `discovery/item/{id}` 不含 `xsec_token`，直开一律 404，换 `explore/` 也一样。补法：登录态下站内搜索 `search_result?keyword=…`，结果卡片的 `<a href>` 里带真实 token，回收后拼成 `explore/{id}?xsec_token=…`。关键词按「事件实体 + 书名 / ISBN / 机构」组合多轮搜。
+
+判「已删 / 私密」不能只看一次 404。无 token 时平台会在「404 拦截页」和「回落首页信息流」之间交替返回，两个表现都不足以证明笔记状态。要同时满足两条才判：作者主页「笔记」列表翻到底没有这条（前后日期的都在）、站内多组关键词搜出的卡片里该 ID 零命中。404 拦截页是平台提示页，不是笔记页，不能当截图入册。
 
 ## 状态判定
 
