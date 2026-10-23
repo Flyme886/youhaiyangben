@@ -90,16 +90,38 @@ def main() -> int:
                 "status": "not_captured",
                 "reason": "not captured",
                 "screenshot_path": "",
+                "images": [],
                 "page_title": "",
                 "page_text": "",
                 "captcha_signals": [],
                 "needs_manual_action": False,
             }
-        path = str(row.get("screenshot_path") or "")
-        if path and not (SHOTS / path).exists():
-            row["status"] = "missing_file"
-            row["reason"] = "screenshot file missing"
-            row["screenshot_path"] = ""
+        # ── 多图支持（评论截图：一条样本多张）──────────────────────────────
+        # capture_douyin_comments.js 写的是 screenshots:[{file,kind,clip,covers}]。
+        # 这里把存在的文件名摊平成 images:[文件名…]，并保持 screenshot_path=第一张
+        # （兼容只认单图的老版引擎与 quality_check）。
+        shots = row.get("screenshots")
+        if isinstance(shots, list) and shots:
+            images = []
+            for s in shots:
+                fn = str((s or {}).get("file") or (s if isinstance(s, str) else "") or "")
+                if fn and (SHOTS / fn).exists():
+                    images.append(fn)
+            row["images"] = images
+            if images:
+                row["screenshot_path"] = images[0]
+            elif not row.get("screenshot_path"):
+                row["status"] = "missing_file"
+                row["reason"] = "screenshot file missing"
+        else:
+            row.setdefault("images", [])
+            path = str(row.get("screenshot_path") or "")
+            if path and not (SHOTS / path).exists():
+                row["status"] = "missing_file"
+                row["reason"] = "screenshot file missing"
+                row["screenshot_path"] = ""
+            if row.get("screenshot_path"):
+                row["images"] = [row["screenshot_path"]]
         items.append(row)
 
     TARGET.parent.mkdir(parents=True, exist_ok=True)

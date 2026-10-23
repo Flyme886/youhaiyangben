@@ -71,11 +71,38 @@
 - **原因**：macOS 没有 GNU `timeout`。
 - **处置**：本包脚本**均不依赖 `timeout`**；超时统一用 Ego 环境内的 Promise 竞赛看门狗实现。写新脚本时也不要用 `timeout`。
 
-## 12. `blocked_or_blank` 与「截图待补」是降级路径，不是失败
+## 12. `blocked_or_blank` / 验证码 / 缺图都是降级路径，不是失败（交付优先）
 
-- **现象**：某条 `status=blocked_or_blank`（正文 <20 字），Word 里变成「截图待补：<原因>」。
-- **原因**：页面被风控/空白，属设计内的降级，不是脚本出错。
-- **处置**：**不当失败**：不要因此中断 Word 生成，也不要把它算进"失败条数"。成品以「截图待补」呈现即可；若占比异常高，回头查是否又触发限流（见 2）。
+- **现象**：某条 `status=blocked_or_blank`（正文 <20 字）、`captcha`、或 `timeout`，没截到图。
+- **原因**：页面被风控/空白/超时，属设计内的降级，不是脚本出错。
+- **处置（交付优先原则）**：
+  1. **不当失败**：不要因此中断 Word 生成，也不要把它算进「失败条数」，更**不要停下来等人**。
+  2. Word 里该位置**留空白**（适配 #8 已删掉「截图待补：<原因>」这类占位文案），
+     文字部分（元信息 / 原文 / 链接 / `【违规要素】`）照常完整输出。
+  3. 任务状态按「已交付」收尾（`completed` / `partial_completed`），
+     末尾**一句话**说明命中条数即可（文案要求见 SKILL.md「交付优先原则」）。
+  4. `verify_docx.py` 对缺图只打印 `no_image(x/y)` 提示、**不影响退出码**；
+     文字层面的硬伤（`【违规要素】`框数 != 条目数、编号断号、防御性措辞）才判失败（退出码 2）。
+  5. 采集状态本身**完整保留**在 `处理日志.csv` / `截图状态汇总.csv` / `完成标记.json` 里备查 ——
+     留白只是不上正文，不是丢信息。
+  6. 若占比异常高，回头查是否又触发限流（见 2）/ 登录态是否失效（见 15）。
+
+## 12b. 状态语义：什么时候才允许出现「待重跑」
+
+- **现象**：任务收尾状态拿不准该给 `completed` / `partial_completed` / `paused_captcha`。
+- **原因**：历史上命中验证码就无条件暂停等人工，导致「有文字可交却一个 Word 都没出」。
+- **处置**：**以「有没有 docx」为唯一判据**（`task_runner.finalize_task()`）：
+
+  | 有没有 Word | 命中验证码 | 收尾状态 | `current_step` |
+  |---|---|---|---|
+  | 有，且无未附图条目 | — | `completed` | `完成` |
+  | 有，且有未附图条目 | 可能有 | `partial_completed` | `完成` |
+  | **没有** | 是 | `paused_captcha`（兜底态） | `等待人工处理` |
+  | **没有** | 否 | `failed` | `失败` |
+
+  也就是说 `paused_captcha` **只保留给「命中验证码且一个 Word 都没产出」**这种真的无物可交的情形。
+  注意后端把多段说明用 `"; "` 拼接、小程序按 `;` 切段翻译 ——
+  新增说明文案里**不能出现分号**，否则会被切碎。
 
 ## 13. 作者名自带 `@` → 元信息出现 `@@`
 
@@ -119,3 +146,74 @@
   只有在该文件被回退成上游原始版时才需要重跑 `apply_adaptations.py`。
 - **校验**：`verify_docx.py` 会统计 `defensive=N`，**必须为 0**，否则退出码 2。
   注意规则未命中时的回落文案「依据文案及页面文字判定为有害样本。」是断言、不是对冲，不算违规。
+
+---
+
+## 17. 环境变量进了 ego 的 node 全是 `undefined`
+
+- **现象**：`CAPTURE_CONFIG=/abs/cfg.json ego-browser nodejs < capture_douyin.js` 报
+  `config_load_warn ENOENT: open '/capture_config.json'`，随后
+  `Error: manifest / shots_dir / results_dir 必须配置`。`process.cwd()` 恒为 `/`。
+- **原因**：`ego-browser nodejs` 的脚本**跑在 app 侧的嵌入式 node** 里，
+  **调用方的环境变量不会透传**（实测 `FOO=bar ego-browser nodejs` 里 `process.env.FOO === undefined`）。
+  所以不存在「环境变量单键覆盖」这条路，`SCRIPT_DIR` 也失效（`import.meta.url` 为 `/`）。
+- **处置**：由 `run_capture.sh` 在脚本前面拼一段 **prelude**：
+  ```
+  globalThis.__CAPTURE_ENV = {CONFIG:"…", LIMIT:"12", TAG:"c0", FRESH:"true", SPACE:"3"};
+  ```
+  `capture_douyin.js` 用 `envOf(key)` 取值：**prelude 优先，其次 `process.env.CAPTURE_*`**。
+  要加配置项 = 改 prelude + 在 `envOf()` 的读取处加一行。每次调用都是全新全局上下文，不会残留。
+
+## 18. 空间被用户接管 → 不能自行抢回
+
+- **现象**：
+  `Error: task.listTabs: The user has taken control of this task space and ended the task…`
+  或 `task space not found: 8`。
+- **原因**：① 该空间 `ownership === "user"`；② 传的数字 id 不存在（新建空间要传**名字**）。
+- **处置**：先 `listTaskSpaces()` 看归属。**属于用户的必须先问用户**，拿到明确授权后再
+  `claimTaskSpace(<id>)`；不要自己抢、也不要靠新建空间绕过（ego 明确禁止「用新空间绕过卡住的空间」）。
+  接管后 `SPACE_ID=<id>` 交给 `run_capture.sh` 即可。
+
+## 19. 分片脚本第二片就误停 / pending 恒等于 CHUNK
+
+- **现象**：`--- 片 c0: pending=12 ---` 后立刻 `ERROR: 连续两片 pending 无变化(12)`。
+- **原因**：`pending` 在 `capture_douyin.js` 里被 `limit` 截断（`pending = pending.slice(0, limit)`），
+  每片都恒等于 `CHUNK`，拿它当「无进展」判据必然第二片就命中。
+- **处置**：改看 **`remaining`**（未完成且未达重试上限的真实剩余条数）。`capture_douyin.js` 现在打印
+  `already_ok N remaining M pending K`，`run_capture.sh` 只解析 `remaining`。
+
+## 20. 永久 `blocked_or_blank` 的条目导致死循环
+
+- **现象**：抓一轮跑不完，每片都在重抓同样几条。
+- **原因**：断点续跑只跳过 `status==="ok"`，长期失败的条目每片都被重新选中 → `remaining` 永不归零。
+- **处置**：`capture_douyin.js` 额外统计每个 item 的**尝试次数**，达到 `max_attempts`（默认 2）
+  即视为已处置（降级路径，不是失败）。想再多试几次就调大 `max_attempts`。
+- **与交付优先的关系**：封顶后这些条目就按**缺图留白**进入 Word，不再阻塞生成。
+  「封顶」不是「放弃」，而是把不确定性从「整批卡住」收敛成「少数几条没有图」——
+  后者照样是可交付的成品（配套见 12）。
+
+## 21. 整页停在「加载中」→ 截图只有一个转圈图标
+
+- **现象**：`status=blocked_or_blank`，`page_text` 长度 0 或 56，截图是纯深色 + 「加载中」。
+  `page.goto` + `settle` 已经返回，但抖音 SPA 一直没渲染详情内容。
+- **原因**：客户端渲染没走完 / 首屏 chunk 拉取失败，页面卡在骨架态。只等固定 `settle` 不够。
+- **处置**：`capture_douyin.js` 加了**正文轮询**：每轮最多等 5s（后续轮 4s），
+  用 `stillLoading()` 判定（空/过短/尾部含「加载中|加载失败|网络异常|请稍后重试」），
+  仍卡住就 **`reload()` 一次**（必须继续用 `domcontentloaded`），共 3 轮。
+  修复前首片 12 条有 2–4 条空白，修复后 12/12 `ok`。
+
+## 22. 重建标签页时选中已关闭的僵尸页 → 每条都 `page pNN was closed`
+
+- **现象**：`status=navigation_error`，`reason="page p6 was closed"`，连续多条如此。
+- **原因**：`fresh` 模式下先 `close()` 掉所有页，紧接着 `task.pages()` 仍会短暂返回刚关掉的对象，
+  取第一个就拿到死页。
+- **处置**：关闭后 `await new Promise(r => setTimeout(r, 600))`，再遍历 `task.pages()`，
+  对每个候选 `await p.url()` 探活（失败即跳过），全不可用才 `task.newPage()`。
+
+## 23. `ok` 里混着「你要观看的视频不存在」≠ 抓取失败
+
+- **现象**：截图显示「你要观看的视频不存在」，仍被判 `ok`。
+- **原因**：原视频已被作者删除/下架，抖音返回该提示页；页面文字 ≥20 字，故不算空白。
+- **处置**：**这是真实状态的证据，保留即可**，不要当失败重抓。
+  统计口径：这批 351 条里约一成属于此类。
+
