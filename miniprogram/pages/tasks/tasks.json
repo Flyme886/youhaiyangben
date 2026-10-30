@@ -1,0 +1,13 @@
+{
+  "navigationBarTitleText": "任务列表",
+  "navigationBarBackgroundColor": "#f7f4ee",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f7f4ee",
+  "backgroundTextStyle": "dark",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 120,
+  "usingComponents": {
+    "status-tag": "/components/status-tag/index",
+    "empty-state": "/components/empty-state/index"
+  }
+}

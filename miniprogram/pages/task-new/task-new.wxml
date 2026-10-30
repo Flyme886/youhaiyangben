@@ -1,0 +1,108 @@
+<view class="page-wrap">
+  <!-- 处理流程说明：业务用户最关心「交出去之后会发生什么」 -->
+  <view class="card guide">
+    <view class="flex-between" bindtap="toggleSteps">
+      <text class="card-title">提交后会自动完成这些步骤</text>
+      <text class="muted tiny">{{stepsOpen ? '收起' : '展开'}}</text>
+    </view>
+
+    <view wx:if="{{stepsOpen}}" class="guide-body">
+      <view class="guide-item">
+        <text class="guide-no">1</text>
+        <text class="guide-text">校验表头并按链接去重</text>
+      </view>
+      <view class="guide-item">
+        <text class="guide-no">2</text>
+        <text class="guide-text">逐条处理表格中的链接</text>
+      </view>
+      <view class="guide-item">
+        <text class="guide-no">3</text>
+        <text class="guide-text">校验处理结果的可用度</text>
+      </view>
+      <view class="guide-item">
+        <text class="guide-no">4</text>
+        <text class="guide-text">每 50 条生成一份 Word 并打包</text>
+      </view>
+      <text class="tiny muted guide-tail">整条链路在服务器后台运行，可以随时退出小程序，完成后回来看结果即可。</text>
+    </view>
+  </view>
+
+  <!-- 文件选择 -->
+  <view class="card">
+    <text class="card-title">样本 Excel</text>
+    <text class="card-sub">只接受 .xlsx；表头需包含原文链接列</text>
+
+    <view wx:if="{{!file}}" class="picker" bindtap="onChooseFile" hover-class="picker-hover">
+      <view class="picker-plus">
+        <view class="plus-h"></view>
+        <view class="plus-v"></view>
+      </view>
+      <text class="picker-text">从聊天记录选择文件</text>
+      <text class="picker-hint">请先把 Excel 发送到任意聊天（推荐「文件传输助手」）</text>
+    </view>
+
+    <view wx:else class="file-row" bindtap="onPreviewFile">
+      <view class="file-icon">XLS</view>
+      <view class="flex-1 file-info">
+        <text class="file-name ellipsis">{{file.name}}</text>
+        <text class="tiny muted">{{file.sizeText}}</text>
+      </view>
+      <text wx:if="{{!uploading}}" class="file-remove" catchtap="onRemoveFile">移除</text>
+    </view>
+  </view>
+
+  <!-- 任务信息 -->
+  <view class="card">
+    <view class="field">
+      <text class="field-label">任务名</text>
+      <input
+        class="field-input"
+        value="{{name}}"
+        maxlength="60"
+        placeholder="默认取文件名"
+        disabled="{{uploading}}"
+        bindinput="onNameInput"
+      />
+    </view>
+
+    <view class="field field-last">
+      <text class="field-label">备注（选填）</text>
+      <textarea
+        class="field-textarea"
+        value="{{note}}"
+        maxlength="200"
+        placeholder="例如：9 月批次 / 优先级高"
+        disabled="{{uploading}}"
+        bindinput="onNoteInput"
+      />
+      <text class="field-hint">{{note.length}}/200</text>
+    </view>
+  </view>
+
+  <!-- 上传进度 -->
+  <view wx:if="{{uploading}}" class="card progress-card">
+    <view class="flex-between">
+      <text class="strong">正在上传</text>
+      <text class="muted">{{progress}}%</text>
+    </view>
+    <view class="progress">
+      <view class="progress-bar" style="width: {{progress}}%"></view>
+    </view>
+    <view class="btn btn-muted btn-sm cancel-btn" bindtap="onCancelUpload">取消上传</view>
+  </view>
+
+  <view wx:if="{{error}}" class="card error-card">
+    <text class="error-text">{{error}}</text>
+  </view>
+
+  <button
+    class="btn btn-primary submit"
+    loading="{{uploading}}"
+    disabled="{{uploading || !file}}"
+    bindtap="onSubmit"
+  >
+    {{uploading ? '上传中…' : '提交任务'}}
+  </button>
+
+  <view class="safe-bottom"></view>
+</view>

@@ -1,0 +1,99 @@
+<view class="page-wrap">
+  <!-- 概览：点数字可直接切换筛选 -->
+  <view class="stats">
+    <view
+      wx:for="{{statCards}}"
+      wx:key="key"
+      class="stat {{activeFilter === item.key ? 'stat-on' : ''}}"
+      bindtap="onFilterTap"
+      data-key="{{item.key}}"
+    >
+      <text class="stat-value stat-{{item.tone || 'plain'}}">{{item.value}}</text>
+      <text class="stat-label">{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 筛选条 -->
+  <view class="tabs">
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="tab {{activeFilter === item.key ? 'tab-on' : ''}}"
+      bindtap="onFilterTap"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 骨架屏：首屏加载 -->
+  <block wx:if="{{firstLoading}}">
+    <view wx:for="{{[1, 2, 3]}}" wx:key="*this" class="card">
+      <view class="skeleton sk-title"></view>
+      <view class="skeleton sk-sub"></view>
+      <view class="skeleton sk-bar"></view>
+    </view>
+  </block>
+
+  <!-- 加载失败 -->
+  <view wx:elif="{{error}}" class="card error-card">
+    <text class="error-text">{{error}}</text>
+    <text wx:if="{{errorDetail}}" class="error-detail">{{errorDetail}}</text>
+    <view class="btn btn-ghost btn-sm retry-btn" bindtap="onRetry">重新加载</view>
+  </view>
+
+  <!-- 空状态 -->
+  <empty-state
+    wx:elif="{{list.length === 0}}"
+    text="还没有任务"
+    hint="切到「新建」上传一份表格，服务器会自动截图、质检并生成 Word"
+    actionText="上传表格"
+    bind:action="onGoNew"
+  />
+
+  <!-- 任务列表 -->
+  <block wx:else>
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="card task-card"
+      bindtap="onTaskTap"
+      data-id="{{item.id}}"
+      hover-class="card-hover"
+      hover-stay-time="80"
+    >
+      <view class="task-head">
+        <text class="task-name ellipsis">{{item.nameText}}</text>
+        <status-tag status="{{item.status}}" compact="{{true}}" />
+      </view>
+
+      <view class="task-meta">
+        <text class="tiny muted mono">{{item.id}}</text>
+        <text class="tiny muted">·</text>
+        <text class="tiny muted">{{item.createdText}}</text>
+        <text wx:if="{{item.durationText}}" class="tiny muted">· 耗时 {{item.durationText}}</text>
+      </view>
+
+      <text wx:if="{{item.note}}" class="task-note tiny muted ellipsis">{{item.note}}</text>
+
+      <!-- 进度条只在任务还会推进时出现 -->
+      <view wx:if="{{item.live}}" class="progress">
+        <view class="progress-bar" style="width: {{item.progress}}%"></view>
+      </view>
+
+      <view class="task-foot">
+        <text class="tiny muted flex-1 ellipsis">{{item.stepText || '等待执行'}}</text>
+        <view class="foot-chips">
+          <text wx:if="{{item.docx_count > 0}}" class="chip chip-ok">Word {{item.docx_count}}</text>
+          <text wx:if="{{item.issue_count > 0}}" class="chip chip-warn">未附图 {{item.issue_count}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="load-more">
+      <text wx:if="{{loading}}" class="tiny muted">加载中…</text>
+      <text wx:elif="{{!hasMore}}" class="tiny muted">没有更多了</text>
+      <text wx:else class="tiny muted">上拉加载更多</text>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,163 @@
+<view class="page-wrap">
+  <!-- 加载中 -->
+  <block wx:if="{{loading}}">
+    <view class="card">
+      <view class="skeleton sk-title"></view>
+      <view class="skeleton sk-sub"></view>
+      <view class="skeleton sk-bar"></view>
+    </view>
+  </block>
+
+  <!-- 加载失败 -->
+  <view wx:elif="{{loadError}}" class="card error-card">
+    <text class="error-text">{{loadError}}</text>
+    <view class="btn btn-ghost btn-sm" bindtap="onBackToTasks">返回任务列表</view>
+  </view>
+
+  <block wx:else>
+    <!-- 概览 -->
+    <view class="card">
+      <view class="head">
+        <text class="task-name">{{task.name}}</text>
+        <status-tag status="{{task.status}}" />
+      </view>
+      <text class="tiny muted status-hint">{{statusHint}}</text>
+
+      <view class="meta" bindtap="onCopyId" hover-class="meta-hover">
+        <text class="tiny muted mono">{{task.id}}</text>
+        <text class="tiny muted copy-tip">点击复制</text>
+      </view>
+
+      <view class="progress">
+        <view class="progress-bar {{live ? 'bar-live' : ''}}" style="width: {{progress}}%"></view>
+      </view>
+
+      <view class="meta-line">
+        <text class="tiny muted">创建 {{createdText}}</text>
+        <text wx:if="{{durationText}}" class="tiny muted">耗时 {{durationText}}</text>
+      </view>
+    </view>
+
+    <!-- 步骤流 -->
+    <view class="card">
+      <text class="card-title">处理进度</text>
+      <view class="steps">
+        <view wx:for="{{steps}}" wx:key="key" class="step">
+          <view class="step-rail">
+            <view class="step-dot dot-{{item.state}}"></view>
+            <view wx:if="{{index !== steps.length - 1}}" class="step-line line-{{item.state}}"></view>
+          </view>
+          <view class="step-body">
+            <text class="step-label label-{{item.state}}">{{item.label}}</text>
+            <text class="tiny muted">{{item.hint}}</text>
+          </view>
+        </view>
+      </view>
+      <text class="tiny muted step-current">当前步骤：{{stepText || '等待执行'}}</text>
+    </view>
+
+    <!-- 指标 -->
+    <view class="metrics">
+      <view class="metric">
+        <text class="metric-label">Word 份数</text>
+        <text class="metric-value">{{task.docx_count}}</text>
+      </view>
+      <view class="metric">
+        <text class="metric-label">未附图条数</text>
+        <text class="metric-value">{{task.issue_count}}</text>
+      </view>
+      <view class="metric">
+        <text class="metric-label">完成时间</text>
+        <text class="metric-value metric-value-sm">{{finishedText ? finishedText : '处理中'}}</text>
+      </view>
+    </view>
+
+    <!-- 操作 -->
+    <view wx:if="{{actions.resume || actions.cancel}}" class="actions">
+      <view
+        wx:if="{{actions.resume}}"
+        class="btn flex-1 {{task.status === 'paused_captcha' ? 'btn-primary' : 'btn-ghost'}}"
+        bindtap="onResume"
+      >
+        {{task.status === 'paused_captcha' ? '重跑任务' : '补齐图片'}}
+      </view>
+      <view
+        wx:if="{{actions.cancel}}"
+        class="btn btn-danger flex-1"
+        bindtap="onCancel"
+      >
+        取消任务
+      </view>
+    </view>
+
+    <!-- 交付说明（验证码/截图缺少时只有一句简短说明，不阻塞交付） -->
+    <view wx:if="{{errorList.length > 0}}" class="card warn-card">
+      <text class="card-title">交付说明</text>
+      <view wx:for="{{errorList}}" wx:key="*this" class="warn-item">
+        <view class="warn-dot"></view>
+        <text class="warn-text">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 采集状态 -->
+    <view wx:if="{{capture.length > 0 || quality.length > 0}}" class="card">
+      <text class="card-title">采集状态</text>
+
+      <block wx:if="{{capture.length > 0}}">
+        <text class="tiny muted group-label">截图结果</text>
+        <view class="chips">
+          <view wx:for="{{capture}}" wx:key="key" class="chip chip-{{item.key === 'ok' ? 'ok' : 'warn'}}">
+            {{item.label}} {{item.count}}
+          </view>
+        </view>
+      </block>
+
+      <block wx:if="{{quality.length > 0}}">
+        <text class="tiny muted group-label">质检分档</text>
+        <view class="chips">
+          <view wx:for="{{quality}}" wx:key="key" class="chip chip-{{item.key === 'usable' ? 'ok' : 'warn'}}">
+            {{item.label}} {{item.count}}
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 产物下载 -->
+    <view class="card">
+      <text class="card-title">产物下载</text>
+      <view wx:if="{{files.length > 0}}" class="file-list">
+        <view wx:for="{{files}}" wx:key="name" class="file-row" bindtap="onDownload" data-name="{{item.name}}">
+          <view class="file-icon file-{{item.previewable ? 'doc' : 'zip'}}">{{item.extLabel}}</view>
+          <view class="flex-1 file-info">
+            <text class="file-name ellipsis">{{item.name}}</text>
+            <text class="tiny muted">{{item.sizeText}}</text>
+          </view>
+          <text class="file-action">{{item.previewable ? '预览' : '发送'}}</text>
+        </view>
+      </view>
+      <view wx:else class="empty-inline">
+        <text class="tiny muted">{{live ? '任务处理中，产物生成后可在此下载' : '没有可下载的产物'}}</text>
+      </view>
+    </view>
+
+    <!-- 运行日志 -->
+    <view class="card">
+      <view class="flex-between" bindtap="toggleLog">
+        <text class="card-title">运行日志</text>
+        <text class="tiny muted">{{logOpen ? '收起' : '展开'}}</text>
+      </view>
+
+      <block wx:if="{{logOpen}}">
+        <view wx:if="{{logTail}}" class="log-box">
+          <text class="log-text" user-select="{{true}}">{{logTail}}</text>
+        </view>
+        <view wx:else class="empty-inline">
+          <text class="tiny muted">任务尚未写入日志</text>
+        </view>
+        <view wx:if="{{logTail}}" class="btn btn-muted btn-sm copy-btn" bindtap="onCopyLog">复制日志</view>
+      </block>
+    </view>
+
+    <view class="safe-bottom"></view>
+  </block>
+</view>

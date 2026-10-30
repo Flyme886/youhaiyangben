@@ -1,0 +1,4 @@
+<view class="tag tag-{{tone}} {{compact ? 'tag-compact' : ''}}">
+  <view wx:if="{{live}}" class="dot"></view>
+  <text class="tag-text">{{label}}</text>
+</view>

@@ -1,0 +1,6 @@
+# 微信开发者工具的本地私有配置，含个人 AppID / 本机路径，不入库
+project.private.config.json
+.DS_Store
+node_modules/
+miniprogram_npm/
+*.log

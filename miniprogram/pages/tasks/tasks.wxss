@@ -1,0 +1,223 @@
+/* ---------------- 概览 ---------------- */
+.stats {
+  display: flex;
+  background: #fffdf7;
+  border: 1rpx solid #d8d2c6;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22rpx 8rpx;
+  border-right: 1rpx solid #e8e3d7;
+}
+
+.stat:last-child {
+  border-right: none;
+}
+
+.stat-on {
+  background: #f2efe6;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-plain {
+  color: #1d2522;
+}
+
+.stat-active {
+  color: #114d42;
+}
+
+.stat-ok {
+  color: #256a43;
+}
+
+.stat-bad {
+  color: #9a2f2f;
+}
+
+.stat-muted {
+  color: #b4b2a9;
+}
+
+.stat-label {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #66736e;
+}
+
+/* ---------------- 筛选条 ---------------- */
+.tabs {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.tab {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #66736e;
+  background: #f1ede3;
+  border: 1rpx solid transparent;
+  border-radius: 12rpx;
+}
+
+.tab-on {
+  background: #1d6f5f;
+  border-color: #114d42;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------------- 任务卡 ---------------- */
+.task-card {
+  position: relative;
+}
+
+.card-hover {
+  background: #faf7f0;
+}
+
+.task-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.task-name {
+  flex: 1;
+  font-size: 31rpx;
+  font-weight: 600;
+  color: #1d2522;
+  line-height: 1.4;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 10rpx;
+  flex-wrap: wrap;
+}
+
+.task-note {
+  display: block;
+  margin-top: 10rpx;
+}
+
+.progress {
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: #ece7dd;
+  overflow: hidden;
+  margin-top: 20rpx;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4rpx;
+  background: #1d6f5f;
+  transition: width 0.4s ease;
+}
+
+.task-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.foot-chips {
+  display: flex;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.chip {
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 8rpx 12rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid #d8d2c6;
+  background: #f4f1e9;
+  color: #66736e;
+}
+
+.chip-ok {
+  color: #256a43;
+  border-color: #a8c9b4;
+  background: #eaf3ec;
+}
+
+.chip-warn {
+  color: #9b4a20;
+  border-color: #e0b799;
+  background: #fbf0e7;
+}
+
+/* ---------------- 骨架 / 错误 ---------------- */
+.sk-title {
+  height: 34rpx;
+  width: 55%;
+  margin-bottom: 18rpx;
+}
+
+.sk-sub {
+  height: 22rpx;
+  width: 35%;
+  margin-bottom: 22rpx;
+}
+
+.sk-bar {
+  height: 8rpx;
+  width: 100%;
+}
+
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 48rpx 28rpx;
+}
+
+.retry-btn {
+  padding: 0 40rpx;
+}
+
+/* 失败详情（请求地址 + 微信原始错误）：真机排查靠它，必须完整可见 */
+.error-detail {
+  display: block;
+  width: 100%;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #8a8580;
+  text-align: left;
+  word-break: break-all;
+  white-space: pre-wrap;
+  background: #f7f4ee;
+  border-radius: 8rpx;
+  padding: 16rpx 20rpx;
+}
+
+.load-more {
+  text-align: center;
+  padding: 28rpx 0 16rpx;
+}

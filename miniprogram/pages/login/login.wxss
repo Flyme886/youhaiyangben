@@ -1,0 +1,181 @@
+.login-page {
+  min-height: 100vh;
+  padding: 120rpx 48rpx 60rpx;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(29, 111, 95, 0.1) 0%, rgba(247, 244, 238, 0) 60%),
+    #f7f4ee;
+}
+
+/* ---------- 品牌区 ---------- */
+.brand {
+  margin-bottom: 48rpx;
+}
+
+.brand-mark {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: #1d6f5f;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.bar {
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: #f7f4ee;
+  margin: 4rpx 0;
+}
+
+.bar-a {
+  width: 44rpx;
+}
+
+.bar-b {
+  width: 56rpx;
+}
+
+.bar-c {
+  width: 32rpx;
+}
+
+.brand-title {
+  display: block;
+  font-size: 56rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  color: #1d2522;
+}
+
+.brand-sub {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: #66736e;
+  line-height: 1.6;
+}
+
+/* ---------- 连通性提示 ---------- */
+.probe {
+  display: flex;
+  align-items: center;
+  padding: 18rpx 22rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid #d8d2c6;
+  background: #fffdf7;
+  margin-bottom: 24rpx;
+}
+
+.probe-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  margin-right: 14rpx;
+  flex-shrink: 0;
+  background: #b4b2a9;
+}
+
+.probe-pending .probe-dot {
+  background: #d0a15c;
+  animation: probe-blink 1s ease-in-out infinite;
+}
+
+.probe-ok .probe-dot {
+  background: #256a43;
+}
+
+.probe-bad .probe-dot {
+  background: #9a2f2f;
+}
+
+@keyframes probe-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.probe-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #66736e;
+}
+
+.probe-retry {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #1d6f5f;
+  padding-left: 16rpx;
+}
+
+/* 探活失败时的原因说明，紧贴上面的 probe，别被默认间距撑开 */
+.probe-detail {
+  margin-top: -12rpx;
+  margin-bottom: 24rpx;
+}
+
+.probe-detail .error-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---------- 表单面板 ---------- */
+.panel {
+  background: #fffdf7;
+  border: 1rpx solid #d8d2c6;
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx;
+  box-shadow: 0 12rpx 40rpx rgba(38, 42, 36, 0.06);
+}
+
+.login-main {
+  width: 100%;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  margin: 40rpx 0 32rpx;
+}
+
+.or-line {
+  flex: 1;
+  height: 1rpx;
+  background: #d8d2c6;
+}
+
+.or-text {
+  padding: 0 20rpx;
+  font-size: 22rpx;
+  color: #66736e;
+}
+
+.error-box {
+  margin-top: 28rpx;
+  padding: 20rpx 22rpx;
+  background: #fbeaea;
+  border: 1rpx solid #dda8a8;
+  border-radius: 12rpx;
+}
+
+.error-box .error-text {
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+/* ---------- 底部 ---------- */
+.footer {
+  margin-top: auto;
+  padding-top: 60rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}

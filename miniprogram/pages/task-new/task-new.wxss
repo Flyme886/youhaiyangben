@@ -1,0 +1,187 @@
+/* ---------------- 流程说明 ---------------- */
+.guide-body {
+  margin-top: 22rpx;
+}
+
+.guide-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.guide-no {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: #e6f0ed;
+  color: #114d42;
+  font-size: 22rpx;
+  font-weight: 600;
+  text-align: center;
+  line-height: 40rpx;
+  margin-right: 18rpx;
+  flex-shrink: 0;
+}
+
+.guide-text {
+  font-size: 27rpx;
+  color: #1d2522;
+}
+
+.guide-tail {
+  display: block;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed #d8d2c6;
+  line-height: 1.6;
+}
+
+/* ---------------- 文件选择 ---------------- */
+.picker {
+  margin-top: 26rpx;
+  padding: 56rpx 28rpx;
+  border: 2rpx dashed #c9c2b2;
+  border-radius: 16rpx;
+  background: #faf8f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.picker-hover {
+  background: #f2efe6;
+}
+
+.picker-plus {
+  position: relative;
+  width: 64rpx;
+  height: 64rpx;
+  margin-bottom: 22rpx;
+}
+
+.plus-h,
+.plus-v {
+  position: absolute;
+  background: #1d6f5f;
+  border-radius: 4rpx;
+}
+
+.plus-h {
+  left: 0;
+  top: 28rpx;
+  width: 64rpx;
+  height: 8rpx;
+}
+
+.plus-v {
+  top: 0;
+  left: 28rpx;
+  width: 8rpx;
+  height: 64rpx;
+}
+
+.picker-text {
+  font-size: 29rpx;
+  font-weight: 600;
+  color: #1d6f5f;
+}
+
+.picker-hint {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #66736e;
+  text-align: center;
+  line-height: 1.55;
+}
+
+/* ---------------- 已选文件 ---------------- */
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 26rpx;
+  padding: 24rpx;
+  border: 1rpx solid #a8c9b4;
+  border-radius: 16rpx;
+  background: #f2f8f4;
+}
+
+.file-icon {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 12rpx;
+  background: #256a43;
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 1rpx;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.file-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1d2522;
+}
+
+.file-remove {
+  font-size: 25rpx;
+  color: #9a2f2f;
+  padding: 10rpx 16rpx;
+  flex-shrink: 0;
+}
+
+/* ---------------- 表单 ---------------- */
+.field-last {
+  margin-bottom: 0;
+}
+
+/* ---------------- 进度 / 错误 ---------------- */
+.progress-card {
+  background: #f2f8f4;
+  border-color: #a8c9b4;
+}
+
+.progress {
+  height: 12rpx;
+  border-radius: 6rpx;
+  background: #dce9e0;
+  overflow: hidden;
+  margin: 22rpx 0 24rpx;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 6rpx;
+  background: #1d6f5f;
+  transition: width 0.25s ease;
+}
+
+.cancel-btn {
+  width: 100%;
+}
+
+.error-card {
+  background: #fbeaea;
+  border-color: #dda8a8;
+}
+
+.error-card .error-text {
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+/* ---------------- 提交 ---------------- */
+.submit {
+  width: 100%;
+  margin-top: 36rpx;
+}

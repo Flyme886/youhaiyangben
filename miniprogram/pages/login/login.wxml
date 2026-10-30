@@ -1,0 +1,72 @@
+<view class="login-page">
+  <view class="brand">
+    <view class="brand-mark">
+      <view class="bar bar-a"></view>
+      <view class="bar bar-b"></view>
+      <view class="bar bar-c"></view>
+    </view>
+    <text class="brand-title">样本任务台</text>
+    <text class="brand-sub">提交文件、查看处理进度、下载结果</text>
+  </view>
+
+  <!-- 服务端连通性：把「网络不通」和「登录失败」分开，避免用户误判 -->
+  <view class="probe probe-{{serverOk === null ? 'pending' : (serverOk ? 'ok' : 'bad')}}">
+    <view class="probe-dot"></view>
+    <text class="probe-text">{{serverMsg}}</text>
+    <text wx:if="{{serverOk === false}}" class="probe-retry" bindtap="onRetryProbe">重试</text>
+  </view>
+
+  <!-- 失败时把具体原因摊开：域名未加白名单 / 超时 / 证书问题各不相同 -->
+  <view wx:if="{{serverDetail}}" class="error-box probe-detail">
+    <text class="error-text">{{serverDetail}}</text>
+  </view>
+
+  <view class="panel">
+    <button
+      class="btn btn-primary login-main"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+      bindtap="onWechatLogin"
+    >
+      微信一键登录
+    </button>
+
+    <view class="or">
+      <view class="or-line"></view>
+      <text class="or-text">或使用访问密码</text>
+      <view class="or-line"></view>
+    </view>
+
+    <view class="field">
+      <input
+        class="field-input"
+        type="text"
+        password="{{true}}"
+        value="{{password}}"
+        placeholder="请输入后台访问密码"
+        confirm-type="done"
+        bindinput="onPasswordInput"
+        bindconfirm="onPasswordLogin"
+      />
+    </view>
+
+    <button
+      class="btn btn-ghost"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+      bindtap="onPasswordLogin"
+    >
+      密码登录
+    </button>
+
+    <view wx:if="{{error}}" class="error-box">
+      <text class="error-text">{{error}}</text>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="tiny muted">当前环境：{{envLabel}}</text>
+    <text class="tiny muted">运行版本：{{envVersion}}</text>
+    <text class="tiny muted ellipsis">服务地址：{{baseUrl}}</text>
+  </view>
+</view>

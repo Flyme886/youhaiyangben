@@ -1,0 +1,86 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 42rpx;
+  padding: 0 16rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #d8d2c6;
+  background: #fffdf7;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.tag-compact {
+  height: 36rpx;
+  padding: 0 12rpx;
+  font-size: 20rpx;
+}
+
+.tag-text {
+  line-height: 1;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 10rpx;
+  animation: tag-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tag-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+
+/* info —— 排队中 */
+.tag-info {
+  color: #66736e;
+  border-color: #d8d2c6;
+  background: #f4f1e9;
+}
+
+/* active —— 处理中 */
+.tag-active {
+  color: #114d42;
+  border-color: #1d6f5f;
+  background: #e6f0ed;
+}
+
+/* ok —— 已完成（含验证码/缺图的文字版降级交付） */
+.tag-ok {
+  color: #256a43;
+  border-color: #a8c9b4;
+  background: #eaf3ec;
+}
+
+/* warn —— 待重跑（命中验证码且一个 Word 都没产出的兜底态） */
+.tag-warn {
+  color: #9b4a20;
+  border-color: #e0b799;
+  background: #fbf0e7;
+}
+
+/* bad —— 失败 */
+.tag-bad {
+  color: #9a2f2f;
+  border-color: #dda8a8;
+  background: #fbeaea;
+}
+
+/* muted —— 已取消 / 未知 */
+.tag-muted {
+  color: #66736e;
+  border-color: #d8d2c6;
+  background: #f0eee7;
+}

@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/tasks/tasks",
+    "pages/task-new/task-new",
+    "pages/task-detail/task-detail",
+    "pages/mine/mine",
+    "pages/login/login"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#f7f4ee",
+    "navigationBarTitleText": "样本任务台",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f4ee",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "color": "#66736e",
+    "selectedColor": "#1d6f5f",
+    "backgroundColor": "#fffdf7",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/tasks/tasks",
+        "text": "任务",
+        "iconPath": "assets/icons/tasks.png",
+        "selectedIconPath": "assets/icons/tasks-active.png"
+      },
+      {
+        "pagePath": "pages/task-new/task-new",
+        "text": "新建",
+        "iconPath": "assets/icons/new.png",
+        "selectedIconPath": "assets/icons/new-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "assets/icons/mine.png",
+        "selectedIconPath": "assets/icons/mine-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

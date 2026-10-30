@@ -1,0 +1,9 @@
+{
+  "desc": "本小程序为内部任务工具，不参与微信搜索收录，全部页面 disallow。",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "*"
+    }
+  ]
+}

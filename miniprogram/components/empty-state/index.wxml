@@ -1,0 +1,17 @@
+<view class="empty">
+  <view class="art {{plain ? 'art-plain' : ''}}">
+    <view class="sheet">
+      <view class="line line-1"></view>
+      <view class="line line-2"></view>
+      <view class="line line-3"></view>
+    </view>
+    <view class="sheet sheet-back"></view>
+  </view>
+
+  <text class="empty-text">{{text}}</text>
+  <text wx:if="{{hint}}" class="empty-hint">{{hint}}</text>
+
+  <view wx:if="{{actionText}}" class="empty-btn" bindtap="onAction" hover-class="empty-btn-hover">
+    {{actionText}}
+  </view>
+</view>

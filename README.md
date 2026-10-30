@@ -327,3 +327,13 @@ FEISHU_PARENT_FOLDER_TOKEN=
 - 视觉大模型看图判定
 
 第一版目标很明确：**让业务用户只在飞书里发 Excel，然后稳定收到飞书文档和 Word 结果。**
+
+## 微信小程序端（舆见小工具）
+
+`miniprogram/` 是本项目的微信小程序端，让业务用户不用开电脑、不用进飞书，在手机上提交 Excel、看进度、取 Word。
+微信原生实现，零构建、无 npm 依赖，用微信开发者工具直接导入即可。
+
+- 入口文件：`miniprogram/config/index.js`（唯一需要改后端地址的地方）
+- 说明文档：`miniprogram/README.md`（页面结构、导入步骤、域名白名单、状态口径）
+- 后端依赖：小程序走 `/api/wx/*`，本仓库 `app/` 目前只有 Web 端接口，还需要额外的小程序专用补丁
+  （code2session + 自签 token、wx 用户表、12 个接口路由、nginx `/api/wx/` 前缀转发）才能跑通

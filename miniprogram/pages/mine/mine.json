@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "我的",
+  "navigationBarBackgroundColor": "#f7f4ee",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f7f4ee",
+  "enablePullDownRefresh": true,
+  "usingComponents": {}
+}
