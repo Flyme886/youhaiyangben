@@ -12,12 +12,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from .api_wx import on_startup as wx_on_startup
+from .api_wx import router as wx_router
 from .config import BASE_DIR, settings
 from .db import create_task, get_task, init_db, list_recoverable_tasks, list_tasks, parse_summary, update_task
 from .task_runner import cancel_task, enqueue_task
 
 
 app = FastAPI(title="有害样本任务台")
+app.include_router(wx_router)  # 小程序 /api/wx/* 接口
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
@@ -27,6 +30,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
 def startup() -> None:
     settings.task_root.mkdir(parents=True, exist_ok=True)
     init_db()
+    wx_on_startup()  # 补齐小程序所需字段与索引（幂等）
     for task in list_recoverable_tasks():
         update_task(task["id"], status="queued", current_step="服务重启后重新排队")
         enqueue_task(task["id"])
