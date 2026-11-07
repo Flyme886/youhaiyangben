@@ -17,7 +17,7 @@ from .db import get_task, update_task, utc_now
 
 
 TASK_QUEUE: queue.Queue[str] = queue.Queue()
-WORKER_STARTED = False
+WORKER_STARTED = 0
 WORKER_LOCK = threading.Lock()
 
 # 运行中子进程注册表（task_id → Popen），用于取消时杀进程
@@ -57,13 +57,19 @@ def cancel_task(task_id: str) -> bool:
 
 
 def ensure_worker() -> None:
+    """按 settings.task_workers 拉起常驻 worker 线程（幂等）。"""
     global WORKER_STARTED
+    target = max(1, settings.task_workers)
     with WORKER_LOCK:
-        if WORKER_STARTED:
+        if WORKER_STARTED >= target:
             return
-        thread = threading.Thread(target=_worker_loop, name="harmful-sample-worker", daemon=True)
-        thread.start()
-        WORKER_STARTED = True
+        for index in range(WORKER_STARTED, target):
+            threading.Thread(
+                target=_worker_loop,
+                name=f"harmful-sample-worker-{index + 1}",
+                daemon=True,
+            ).start()
+        WORKER_STARTED = target
 
 
 def enqueue_task(task_id: str) -> None:
@@ -80,6 +86,19 @@ def _worker_loop() -> None:
                 pass  # 入队前已被取消，跳过
             else:
                 run_task(task_id)
+        except Exception as exc:
+            # 单个任务抛出未预期异常时，绝不能把 worker 线程带走 ——
+            # 线程一死，队列就再也消费不动，服务看着是活的却永远不干活。
+            try:
+                update_task(
+                    task_id,
+                    status="failed",
+                    current_step="失败",
+                    finished_at=utc_now(),
+                    error_message=f"worker error: {exc}",
+                )
+            except Exception:
+                pass
         finally:
             TASK_QUEUE.task_done()
 
@@ -121,6 +140,9 @@ def run_task(task_id: str) -> None:
 
     deadline = time.time() + settings.task_timeout_seconds
     step_failures: list[str] = []
+    # 命中验证码风控时，不再提前 return：仍然跑完「截图质检 → 生成 Word」，
+    # 让用户在拿到 Word（截图位留空）的同时看到任务被标记为等待人工处理。
+    captcha_paused = False
 
     # 检查 storage_state 文件年龄
     ss_path = settings.storage_state_path
@@ -189,8 +211,21 @@ def run_task(task_id: str) -> None:
                     settings.drission_domains,
                     "--retries",
                     str(settings.capture_retries),
+                    "--batch-size",
+                    str(settings.capture_batch_size),
+                    "--batch-delay-min-ms",
+                    str(settings.capture_batch_delay_min_ms),
+                    "--batch-delay-max-ms",
+                    str(settings.capture_batch_delay_max_ms),
                 ]
             )
+            # 代理只在配置了才提示，并且**只走环境变量、不进命令行**：
+            # run_step 会把整条命令写进 run.log，而代理 URL 带 user:pass，落盘即泄密。
+            # capture_playwright.py 的 --proxy 默认值会读 CAPTURE_PROXY / HTTPS_PROXY。
+            if settings.capture_proxy:
+                log.write("[capture] 住宅代理已配置（走 CAPTURE_PROXY 环境变量，不写入 run.log）\n")
+            if settings.capture_user_agent:
+                capture_cmd.extend(["--user-agent", settings.capture_user_agent])
 
             capture_ok = run_step(task_id, "截图采集", capture_cmd, task_dir, log, deadline, required=False)
             if not capture_ok:
@@ -200,10 +235,17 @@ def run_task(task_id: str) -> None:
                 return
 
             capture_counts = read_capture_counts(screenshots_manifest)
-            if capture_counts.get("captcha_detected", 0) >= settings.captcha_pause_threshold:
-                step_failures.append(f"检测到验证码 {capture_counts.get('captcha_detected', 0)} 条，任务暂停等待人工处理")
-                finalize_task(task_id, task_dir, step_failures, paused=True)
-                return
+            captcha_hits = capture_counts.get("captcha_detected", 0)
+            if captcha_hits >= settings.captcha_pause_threshold:
+                captcha_paused = True
+                total_hits = sum(capture_counts.values())
+                # 交付优先：验证码只作为「一句简短说明」，不再中断流程、不再要求人工介入。
+                # 文案刻意不含 ";" —— 后端用 "; " 拼接多段失败信息，前端按 ";" 切段翻译，
+                # 说明句里带分号会被切碎。
+                step_failures.append(
+                    f"{captcha_hits}/{total_hits} 条命中平台验证码，未取到截图，"
+                    f"Word 已按文字版正常交付（图片位置留空）"
+                )
 
             if _is_cancelled(task_id):
                 return
@@ -233,7 +275,7 @@ def run_task(task_id: str) -> None:
                 final_cmd.extend(["--screenshots-manifest", str(screenshots_manifest)])
                 step_failures.append("未生成 screenshot_quality_manifest.json，Word 使用原始截图")
             else:
-                step_failures.append("未生成质检manifest，Word 将使用截图待补")
+                step_failures.append("未生成质检manifest，Word 按文字版交付")
 
             word_ok = run_step(task_id, "生成 Word", final_cmd, task_dir, log, deadline, required=False)
             if not word_ok:
@@ -258,7 +300,7 @@ def run_task(task_id: str) -> None:
     if _is_cancelled(task_id):
         return
 
-    finalize_task(task_id, task_dir, step_failures, paused=False)
+    finalize_task(task_id, task_dir, step_failures, paused=captcha_paused)
 
 
 def run_step(
@@ -321,6 +363,47 @@ def run_step(
     return False
 
 
+def count_missing_screenshots(
+    output_dir: Path, summary: dict, capture_counts: dict[str, int]
+) -> int:
+    """数出「文档里不会出现图片」的记录条数（= 前端展示的「未附图条数」）。
+
+    首选**质检清单**，因为它才是「这张图能不能用」的权威口径：
+      quality ∈ {usable, needs_review} → 会插图；
+      unusable / not_captured / 其它 → 正文留白。
+
+    质检清单不存在、为空、或结构不符时，退化为抓取计数（排除确实带图的 ok）。
+
+    刻意不含 len(step_failures)：那是流程告警条数，不是记录条数，
+    混进来会让前端显示的数字比实际记录数还多（实测 1057 条被显示成 1058）。
+    """
+    quality_manifest = output_dir / "screenshots" / "screenshot_quality_manifest.json"
+    if quality_manifest.exists():
+        try:
+            data = json.loads(quality_manifest.read_text(encoding="utf-8"))
+        except Exception:
+            data = None
+        items = data.get("items") if isinstance(data, dict) else data
+        if isinstance(items, list) and items:
+            missing = 0
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                quality = str(it.get("quality") or it.get("status") or "").strip()
+                if quality in {"usable", "needs_review"}:
+                    continue
+                if not quality and (it.get("images") or it.get("screenshot_path")):
+                    # 清单里没写质量字段，退化成「有没有落到图片」
+                    continue
+                missing += 1
+            return missing
+
+    status_counts = summary.get("screenshot_status_counts") or {}
+    return sum(
+        int(v) for k, v in status_counts.items() if k not in {"ok", "usable", "needs_review"}
+    )
+
+
 def finalize_task(task_id: str, task_dir: Path, step_failures: list[str], paused: bool) -> None:
     output_dir = task_dir / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -329,31 +412,58 @@ def finalize_task(task_id: str, task_dir: Path, step_failures: list[str], paused
     if capture_counts:
         summary["capture_status_counts"] = capture_counts
     docx_files = sorted(output_dir.glob("*.docx"))
-    status_counts = summary.get("screenshot_status_counts") or {}
-    issue_count = sum(int(v) for k, v in status_counts.items() if k not in {"ok", "usable", "needs_review", "not_captured"})
-    issue_count += len(step_failures)
+    # issue_count 对外就是「未附图条数」。口径必须与**文档本身**一致：
+    #   文档里一条记录有没有图，取决于质检清单 quality 是否 usable / needs_review
+    #   （excel_to_word 只在 quality in {usable, needs_review} 时才插图）。
+    # 只按抓取状态数会低估：实测 8 条里抓取 ok=6，但质检把 3 张判成 unusable，
+    # 正文实际只有 5 张图 —— 按抓取数算会报「未附图 2」，而文档里是 3 条留白。
+    issue_count = count_missing_screenshots(output_dir, summary, capture_counts)
+    # 有未附图记录、或有流程性告警，都属「部分完成」；两者皆无才是「完成」。
+    has_issues = bool(issue_count) or bool(step_failures)
+    summary["missing_screenshots"] = issue_count
 
     if step_failures:
         summary["worker_issues"] = step_failures
     zip_outputs(task_dir, output_dir)
 
-    if paused:
+    # 交付优先原则：**只要有 Word 产出，就按「已交付」收尾**，验证码/截图失败只留一句说明，
+    # 不进入等待人工介入的状态。paused_captcha 仅保留给「命中验证码且一个 Word 都没产出」
+    # 这种真的无物可交的兜底情形。
+    if docx_files:
+        final_status = "partial_completed" if has_issues else "completed"
+        current_step = "完成"
+        error_message = "; ".join(step_failures)
+    elif paused:
         final_status = "paused_captcha"
-        error_message = "; ".join(step_failures)
-    elif docx_files and issue_count:
-        final_status = "partial_completed"
-        error_message = "; ".join(step_failures)
-    elif docx_files:
-        final_status = "completed"
-        error_message = ""
+        current_step = "等待人工处理"
+        error_message = "; ".join(step_failures) or "命中验证码且未产出任何 Word"
     else:
         final_status = "failed"
+        current_step = "失败"
         error_message = "; ".join(step_failures) or "No Word files were generated."
+
+    # 结案结论：每次任务都产出一段，供小程序任务详情页展示。
+    # 结论生成是「加法」不是「必需步骤」——失败了也要照常收尾，所以整段包在 try 里，
+    # build_conclusion 内部还有模板兜底，正常情况下不会走到 except。
+    try:
+        import llm_reporter
+
+        task_row = get_task(task_id) or {}
+        summary["conclusion"] = llm_reporter.build_conclusion(
+            filename=str(task_row.get("input_filename") or ""),
+            capture_counts=capture_counts or {},
+            step_failures=step_failures,
+            docx_count=len(docx_files),
+            issue_count=issue_count,
+            is_partial=final_status == "partial_completed",
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[conclusion] 结论生成失败，跳过：{exc}", flush=True)
 
     update_task(
         task_id,
         status=final_status,
-        current_step="等待人工处理" if final_status == "paused_captcha" else ("完成" if final_status in {"completed", "partial_completed"} else "失败"),
+        current_step=current_step,
         finished_at=utc_now(),
         docx_count=len(docx_files),
         issue_count=issue_count,

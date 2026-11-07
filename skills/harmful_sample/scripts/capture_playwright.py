@@ -40,6 +40,12 @@ const storageState = process.argv[8] || "";
 const profile = process.argv[9] || "desktop";
 const headless = (process.argv[10] || "true") === "true";
 const fullPage = (process.argv[11] || "true") === "true";
+// 抗风控可调参数（云端由 .env → capture_playwright.py → 这里的 argv 传入）
+const batchSize = Math.max(1, Number(process.argv[12] || 1));
+const batchDelayMinMs = Math.max(0, Number(process.argv[13] || 0));
+const batchDelayMaxMs = Math.max(batchDelayMinMs, Number(process.argv[14] || batchDelayMinMs));
+const proxyServer = process.env.CAPTURE_PROXY || process.argv[15] || "";
+const userAgentOverride = process.argv[16] || "";
 
 const captchaTerms = [
   "captcha", "recaptcha", "hcaptcha", "cloudflare", "verify", "verification",
@@ -163,7 +169,7 @@ async function captureOne(context, item) {
   return { ...item, engine: "playwright", status, reason, captcha_signals: captchaSignals, needs_manual_action: needsManualAction, screenshot_path: "", ...evidence };
 }
 
-async function processBatch(context, items, batchSize = 6) {
+async function processBatch(context, items, batchSize = 1) {
   const results = [];
   for (let i = 0; i < items.length; i += batchSize) {
     const batch = items.slice(i, i + batchSize);
@@ -172,8 +178,20 @@ async function processBatch(context, items, batchSize = 6) {
     batchResults.forEach(result => {
       console.log(`${result.item_id}\t${result.status}\t${result.link}`);
     });
+    // 批次之间留一段「随机」间隔。固定间隔、尤其零间隔，是自动化最容易被识别的特征之一；
+    // 抖动成 1.2~3s 的随机停顿，请求节奏才接近真人翻页。
+    if (i + batchSize < items.length) {
+      const pause = batchDelayMaxMs > 0
+        ? batchDelayMinMs + Math.floor(Math.random() * (batchDelayMaxMs - batchDelayMinMs + 1))
+        : 0;
+      if (pause > 0) await sleep(pause);
+    }
   }
   return results;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 (async () => {
@@ -185,18 +203,38 @@ async function processBatch(context, items, batchSize = 6) {
   let browser;
   try {
     const launchOptions = { headless };
+    // 服务器侧适配：以 root 运行、或内核限制非特权 user namespace 时，
+    // chromium 的 sandbox 会直接让浏览器启动失败。这种情况由 CHROMIUM_ARGS
+    // 传入 --no-sandbox 等参数解决。本机（macOS）不设该变量，行为与原来一致。
+    const chromiumArgs = (process.env.CHROMIUM_ARGS || "").trim();
+    if (chromiumArgs) {
+      launchOptions.args = chromiumArgs.split(/\s+/).filter(Boolean);
+    }
     if (process.env.CHROMIUM_EXECUTABLE_PATH) {
       launchOptions.executablePath = process.env.CHROMIUM_EXECUTABLE_PATH;
     }
+    // 住宅代理：抖音的风控同时看 IP 与会话，机房/校园网出口是最强特征之一。
+    if (proxyServer) {
+      launchOptions.proxy = { server: proxyServer };
+    }
     browser = await chromium.launch(launchOptions);
     const contextOptions = storageState ? { storageState } : {};
+    // 语言/时区与默认 UA：默认的 HeadlessChrome UA 本身就是强特征，必须换掉。
+    contextOptions.locale = "zh-CN";
+    contextOptions.timezoneId = "Asia/Shanghai";
+    contextOptions.extraHTTPHeaders = { "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8" };
     if (profile === "mobile") {
-      contextOptions.userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+      contextOptions.userAgent = userAgentOverride || "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
       contextOptions.isMobile = true;
+      contextOptions.hasTouch = true;
       contextOptions.viewport = { width: 390, height: 1100 };
+    } else {
+      // desktop 档原来是「什么都不设」，等于用 Playwright 默认身份裸奔。
+      contextOptions.userAgent = userAgentOverride || "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36";
+      contextOptions.viewport = { width: 1280, height: 1600 };
     }
     const context = await browser.newContext(contextOptions);
-    const batchResults = await processBatch(context, items, 6);
+    const batchResults = await processBatch(context, items, batchSize);
     results.push(...batchResults);
     await context.close();
   } catch (err) {
@@ -213,7 +251,8 @@ async function processBatch(context, items, batchSize = 6) {
   } finally {
     if (browser) await browser.close().catch(() => {});
   }
-  const out = { meta: { engine: "playwright", manifest: manifestPath, output_dir: outputDir, timeout_ms: timeoutMs, wait_ms: waitMs, retries, total: results.length }, items: results };
+  // 抗风控参数一并写进 meta，便于事中事后对账（代理只记「已配置」，不落 URL/口令）
+  const out = { meta: { engine: "playwright", manifest: manifestPath, output_dir: outputDir, timeout_ms: timeoutMs, wait_ms: waitMs, retries, profile, headless, batch_size: batchSize, batch_delay_min_ms: batchDelayMinMs, batch_delay_max_ms: batchDelayMaxMs, proxy: proxyServer ? "configured" : "", user_agent: userAgentOverride || "", total: results.length }, items: results };
   await fs.writeFile(path.join(outputDir, 'screenshots_manifest.json'), JSON.stringify(out, null, 2), 'utf8');
 })().catch(async (err) => {
   console.error(err && err.stack || err);
@@ -237,6 +276,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--profile", choices=["desktop", "mobile"], default=os.environ.get("CAPTURE_PROFILE", "desktop"))
     parser.add_argument("--headless", choices=["true", "false"], default=os.environ.get("CAPTURE_HEADLESS", "true").lower())
     parser.add_argument("--full-page", choices=["true", "false"], default=os.environ.get("CAPTURE_FULL_PAGE", "true").lower())
+    # ── 抗风控参数（可由 .env 覆盖；不显式传时读环境变量） ──────────────────────
+    parser.add_argument("--batch-size", type=int, default=int(os.environ.get("CAPTURE_BATCH_SIZE", "3")))
+    parser.add_argument("--batch-delay-min-ms", type=int, default=int(os.environ.get("CAPTURE_BATCH_DELAY_MIN_MS", "1200")))
+    parser.add_argument("--batch-delay-max-ms", type=int, default=int(os.environ.get("CAPTURE_BATCH_DELAY_MAX_MS", "3000")))
+    parser.add_argument(
+        "--proxy",
+        default=os.environ.get("CAPTURE_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("ALL_PROXY") or "",
+        help="住宅代理，形如 http://user:pass@host:port（也可用 CAPTURE_PROXY / HTTPS_PROXY 环境变量）",
+    )
+    parser.add_argument("--user-agent", default=os.environ.get("CAPTURE_USER_AGENT", ""))
     return parser.parse_args()
 
 
@@ -336,7 +385,18 @@ def capture_with_node(args: argparse.Namespace, env: dict[str, str], js_path: Pa
         args.profile,
         args.headless,
         args.full_page,
+        # 抗风控参数（位置必须与 JS 里 process.argv[12..16] 一一对应）
+        str(max(1, int(args.batch_size))),
+        str(max(0, int(args.batch_delay_min_ms))),
+        str(max(0, int(args.batch_delay_max_ms))),
+        # 代理**不**走 argv：它带 user:pass，进了 argv 就等于进了 `ps aux`。
+        # 下面把它放进子进程环境变量，由 JS 读 process.env.CAPTURE_PROXY。
+        "",
+        args.user_agent or "",
     ]
+    if args.proxy:
+        # 让 Playwright / Node 自身需要直连时也走同一出口（仅去掉凭据后的 host:port）
+        env.setdefault("CAPTURE_PROXY", args.proxy)
     return subprocess.run(cmd, env=env, text=True, encoding="utf-8", errors="replace", capture_output=True)
 
 

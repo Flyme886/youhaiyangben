@@ -32,6 +32,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--headless", choices=["true", "false"], default=os.environ.get("CAPTURE_HEADLESS", "true").lower())
     parser.add_argument("--full-page", choices=["true", "false"], default=os.environ.get("CAPTURE_FULL_PAGE", "true").lower())
     parser.add_argument("--drission-domains", default=os.environ.get("DRISSION_DOMAINS", ""))
+    # ── 抗风控透传（默认取环境变量，便于由 .env 统一调） ──────────────────────
+    # 注意：代理不在这里透传 —— capture_playwright.py 会直接读 CAPTURE_PROXY，
+    # 避免带凭据的 URL 出现在任何 argv 里。
+    parser.add_argument("--batch-size", type=int, default=int(os.environ.get("CAPTURE_BATCH_SIZE", "3")))
+    parser.add_argument("--batch-delay-min-ms", type=int, default=int(os.environ.get("CAPTURE_BATCH_DELAY_MIN_MS", "1200")))
+    parser.add_argument("--batch-delay-max-ms", type=int, default=int(os.environ.get("CAPTURE_BATCH_DELAY_MAX_MS", "3000")))
+    parser.add_argument("--user-agent", default=os.environ.get("CAPTURE_USER_AGENT", ""))
     return parser.parse_args()
 
 
@@ -63,7 +70,12 @@ def main() -> int:
             "--profile", args.profile,
             "--headless", args.headless,
             "--full-page", args.full_page,
+            "--batch-size", str(args.batch_size),
+            "--batch-delay-min-ms", str(args.batch_delay_min_ms),
+            "--batch-delay-max-ms", str(args.batch_delay_max_ms),
         ])
+        if args.user_agent:
+            cmd.extend(["--user-agent", args.user_agent])
         if args.no_install_browser:
             cmd.append("--no-install-browser")
     return subprocess.call(cmd)

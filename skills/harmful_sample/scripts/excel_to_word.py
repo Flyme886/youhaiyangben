@@ -33,23 +33,65 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 DEFAULT_TEMPLATE = SKILL_DIR / "assets" / "template.docx"
 
-REQUIRED_COLUMNS = ["标题/微博内容", "原文/评论链接", "原文作者"]
-OPTIONAL_COLUMNS = ["转发/评论作者", "来源网站", "序号"]
+# 交付物只有「N.标题 / 链接 / 截图」三段，所以 Excel 的硬性要求降到只剩链接列。
+# 标题认不出来不报错，版式里写「（无标题）」；其它列（作者/平台/时间…）一律不要求。
+REQUIRED_COLUMNS = ["原文/评论链接"]
+OPTIONAL_COLUMNS = ["标题/微博内容", "原文作者", "转发/评论作者", "来源网站", "序号"]
 BLANK_VALUES = {"", "无", "none", "null", "nan"}
+
+# 链接列内容识别：单元格以 http(s):// 开头即视为链接
+URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
+# 标题列表头关键词（按包含关系匹配，不穷举具体名称）
+TITLE_HEADER_KEYWORDS = ("内容", "正文", "文本", "摘要", "描述", "文案")
 
 # 列名别名映射（扩展，不改动原判定逻辑）：兼容「粉丝排序」类导出的列名
 COLUMN_ALIASES: dict[str, list[str]] = {
-    "标题/微博内容": ["标题/微博内容", "标题", "内容", "文本"],
-    "原文/评论链接": ["原文/评论链接", "URL", "url", "Url", "链接", "原文链接", "评论链接"],
-    "原文作者": ["原文作者", "作者", "昵称", "账号"],
+    "标题/微博内容": ["标题/微博内容", "标题", "文章标题", "微博内容", "正文内容", "贴文内容", "内容", "文本"],
+    "原文/评论链接": ["原文/评论链接", "URL", "url", "Url", "链接", "原文链接", "评论链接", "网址", "地址"],
+    "原文作者": ["原文作者", "原贴作者", "原帖作者", "发帖作者", "作者", "发布者", "账号昵称", "昵称", "账号"],
     "转发/评论作者": ["转发/评论作者", "转发作者", "评论作者"],
-    "来源网站": ["来源网站", "平台"],
+    "来源网站": ["来源网站", "来源平台", "平台"],
     "序号": ["序号"],
     "摘要": ["摘要", "概括"],
     "涉及词": ["涉及词", "关键词"],
     "行业一级": ["行业一级", "行业", "领域"],
     "行业二级": ["行业二级", "子行业"],
 }
+def detect_link_column(headers: list[str], sample_rows: list[tuple[Any, ...]]) -> tuple[Optional[int], float]:
+    """别名全未命中时，按单元格内容识别链接列：URL 占比最高且不低于 50% 的列。"""
+    best_pos: Optional[int] = None
+    best_ratio = 0.0
+    for pos in range(len(headers)):
+        values: list[str] = []
+        for row in sample_rows:
+            if pos < len(row):
+                text = as_text(row[pos]).strip()
+                if text:
+                    values.append(text)
+        if not values:
+            continue
+        hits = sum(1 for value in values if URL_PATTERN.match(value))
+        ratio = hits / len(values)
+        if ratio > best_ratio:
+            best_pos, best_ratio = pos, ratio
+    if best_ratio < 0.5:
+        return None, best_ratio
+    return best_pos, best_ratio
+
+
+def detect_title_column(headers: list[str], link_pos: Optional[int]) -> Optional[int]:
+    """别名全未命中时按表头关键词识别标题列：先认「标题」，再认内容类词。"""
+    fallback: list[int] = []
+    for pos, name in enumerate(headers):
+        if pos == link_pos or not name:
+            continue
+        if "标题" in name:
+            return pos
+        if any(keyword in name for keyword in TITLE_HEADER_KEYWORDS):
+            fallback.append(pos)
+    return fallback[0] if fallback else None
+
+
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 # 用于 --id-min/--id-max 区间筛选的列（粉丝排序导出为 编号）
@@ -268,6 +310,10 @@ def read_records(
     headers = [as_text(v) for v in header_row]
     raw_index = {name: i for i, name in enumerate(headers) if name}
 
+    # 采样做列内容识别（生成器只能遍历一次，先落成列表）
+    rows = list(rows)
+    sample_rows = rows[:80]
+
     # 通过别名把实际列名解析到脚本使用的规范列名
     index: dict[str, int] = {}
     alias_hits: dict[str, str] = {}
@@ -278,11 +324,34 @@ def read_records(
                 alias_hits[canonical] = alias
                 break
 
+    # 链接列兜底：别名全未命中时，按单元格内容识别（URL 占比最高的列）
+    if "原文/评论链接" not in index:
+        link_pos, link_ratio = detect_link_column(headers, sample_rows)
+        if link_pos is not None:
+            index["原文/评论链接"] = link_pos
+            alias_hits["原文/评论链接"] = headers[link_pos] + "（按内容识别）"
+            print(
+                f"[列识别] 链接列按内容识别为第 {link_pos + 1} 列「{headers[link_pos]}」"
+                f"（URL 占比 {link_ratio:.0%}）",
+                flush=True,
+            )
+
+    # 标题列兜底：别名未命中时按表头关键词识别；仍认不出就留空，版式写「（无标题）」
+    if "标题/微博内容" not in index:
+        title_pos = detect_title_column(headers, index.get("原文/评论链接"))
+        if title_pos is not None:
+            index["标题/微博内容"] = title_pos
+            alias_hits["标题/微博内容"] = headers[title_pos] + "（按关键词识别）"
+            print(
+                f"[列识别] 标题列按关键词识别为第 {title_pos + 1} 列「{headers[title_pos]}」",
+                flush=True,
+            )
+
     missing = [name for name in REQUIRED_COLUMNS if name not in index]
     if missing:
         raise SystemExit(
-            "Missing required column(s): " + ", ".join(missing)
-            + " | workbook headers: " + ", ".join(headers)
+            "没有找到链接列：整张表里没有任何一列像链接，无法截图取证。"
+            "| workbook headers: " + ", ".join(headers)
         )
 
     id_pos: int | None = None

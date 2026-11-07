@@ -21,9 +21,14 @@ def dict_factory(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict[str, Any]:
 @contextmanager
 def connect() -> Iterator[sqlite3.Connection]:
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(settings.database_path)
+    # 多 worker 并发写同一个库时，默认的 rollback journal 会让第二个写者直接报
+    # "database is locked"。WAL 允许读写并行，busy_timeout 让写冲突自动重试而不是抛错。
+    conn = sqlite3.connect(settings.database_path, timeout=15)
     conn.row_factory = dict_factory
     try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=15000")
         yield conn
         conn.commit()
     finally:
