@@ -1,4 +1,9 @@
 <view class="page-wrap">
+  <view class="page-heading">
+    <text class="page-title">任务</text>
+    <text class="page-subtitle">查看处理进度，获取每一份结果</text>
+  </view>
+
   <!-- 概览：点数字可直接切换筛选 -->
   <view class="stats">
     <view
@@ -13,7 +18,7 @@
     </view>
   </view>
 
-  <!-- 筛选条 -->
+  <!-- iPhone 式分段筛选 -->
   <view class="tabs">
     <view
       wx:for="{{filters}}"
@@ -51,7 +56,7 @@
     bind:action="onGoNew"
   />
 
-  <!-- 任务列表 -->
+  <!-- 连续任务列表，完整 ID 在详情页查看 -->
   <block wx:else>
     <view
       wx:for="{{list}}"
@@ -68,8 +73,6 @@
       </view>
 
       <view class="task-meta">
-        <text class="tiny muted mono">{{item.id}}</text>
-        <text class="tiny muted">·</text>
         <text class="tiny muted">{{item.createdText}}</text>
         <text wx:if="{{item.durationText}}" class="tiny muted">· 耗时 {{item.durationText}}</text>
       </view>

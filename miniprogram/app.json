@@ -7,17 +7,17 @@
     "pages/login/login"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#f7f4ee",
+    "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "样本任务台",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f7f4ee",
+    "backgroundColor": "#ffffff",
     "backgroundTextStyle": "dark",
     "enablePullDownRefresh": false
   },
   "tabBar": {
-    "color": "#66736e",
+    "color": "#8e8e93",
     "selectedColor": "#1d6f5f",
-    "backgroundColor": "#fffdf7",
+    "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
       {

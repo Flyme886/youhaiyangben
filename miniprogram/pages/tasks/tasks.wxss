@@ -1,67 +1,64 @@
 /* ---------------- 概览 ---------------- */
 .stats {
   display: flex;
-  background: #fffdf7;
-  border: 1rpx solid #d8d2c6;
-  border-radius: 16rpx;
-  overflow: hidden;
-  margin-bottom: 20rpx;
+  margin-bottom: 28rpx;
+  padding: 0 0 28rpx;
+  border-bottom: 1rpx solid #e5e5ea;
 }
 
 .stat {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 22rpx 8rpx;
-  border-right: 1rpx solid #e8e3d7;
-}
-
-.stat:last-child {
-  border-right: none;
-}
-
-.stat-on {
-  background: #f2efe6;
+  align-items: flex-start;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: 40rpx;
+  color: #1c1c1e;
+  font-size: 44rpx;
   font-weight: 600;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.18s ease;
 }
 
-.stat-plain {
-  color: #1d2522;
-}
-
-.stat-active {
-  color: #114d42;
-}
-
-.stat-ok {
-  color: #256a43;
-}
-
-.stat-bad {
-  color: #9a2f2f;
-}
-
-.stat-muted {
-  color: #b4b2a9;
+.stat-on .stat-value,
+.stat-on .stat-label {
+  color: #1d6f5f;
 }
 
 .stat-label {
-  margin-top: 8rpx;
+  margin-top: 10rpx;
+  color: #6e6e73;
   font-size: 22rpx;
-  color: #66736e;
 }
 
-/* ---------------- 筛选条 ---------------- */
+/* 状态色仅在非选中状态承担语义提示 */
+.stat-active {
+  color: #1d6f5f;
+}
+
+.stat-ok {
+  color: #1c1c1e;
+}
+
+.stat-bad {
+  color: #c43c3c;
+}
+
+.stat-muted {
+  color: #8e8e93;
+}
+
+/* ---------------- iPhone 式分段筛选 ---------------- */
 .tabs {
   display: flex;
-  gap: 12rpx;
-  margin-bottom: 20rpx;
+  gap: 4rpx;
+  margin-bottom: 12rpx;
+  padding: 6rpx;
+  border-radius: 18rpx;
+  background: #f5f5f7;
 }
 
 .tab {
@@ -70,41 +67,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
-  color: #66736e;
-  background: #f1ede3;
-  border: 1rpx solid transparent;
-  border-radius: 12rpx;
+  border-radius: 13rpx;
+  color: #6e6e73;
+  font-size: 25rpx;
+  transition: color 0.18s ease, background 0.18s ease;
 }
 
 .tab-on {
-  background: #1d6f5f;
-  border-color: #114d42;
-  color: #fff;
+  background: #ffffff;
+  color: #1c1c1e;
   font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.07);
 }
 
-/* ---------------- 任务卡 ---------------- */
+/* ---------------- 连续任务列表 ---------------- */
 .task-card {
   position: relative;
-}
-
-.card-hover {
-  background: #faf7f0;
+  padding: 30rpx 0;
 }
 
 .task-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 18rpx;
 }
 
 .task-name {
   flex: 1;
+  color: #1c1c1e;
   font-size: 31rpx;
   font-weight: 600;
-  color: #1d2522;
   line-height: 1.4;
 }
 
@@ -122,18 +115,18 @@
 }
 
 .progress {
-  height: 8rpx;
-  border-radius: 4rpx;
-  background: #ece7dd;
+  height: 6rpx;
+  margin-top: 22rpx;
   overflow: hidden;
-  margin-top: 20rpx;
+  border-radius: 3rpx;
+  background: #ececf0;
 }
 
 .progress-bar {
   height: 100%;
-  border-radius: 4rpx;
+  border-radius: 3rpx;
   background: #1d6f5f;
-  transition: width 0.4s ease;
+  transition: width 0.25s ease;
 }
 
 .task-foot {
@@ -141,53 +134,48 @@
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
-  margin-top: 18rpx;
+  margin-top: 16rpx;
 }
 
 .foot-chips {
   display: flex;
-  gap: 10rpx;
+  gap: 18rpx;
   flex-shrink: 0;
 }
 
 .chip {
-  font-size: 20rpx;
-  line-height: 1;
-  padding: 8rpx 12rpx;
-  border-radius: 6rpx;
-  border: 1rpx solid #d8d2c6;
-  background: #f4f1e9;
-  color: #66736e;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6e6e73;
+  font-size: 22rpx;
+  line-height: 1.4;
 }
 
 .chip-ok {
-  color: #256a43;
-  border-color: #a8c9b4;
-  background: #eaf3ec;
+  color: #1c1c1e;
 }
 
 .chip-warn {
-  color: #9b4a20;
-  border-color: #e0b799;
-  background: #fbf0e7;
+  color: #9a5b13;
 }
 
 /* ---------------- 骨架 / 错误 ---------------- */
 .sk-title {
-  height: 34rpx;
   width: 55%;
+  height: 34rpx;
   margin-bottom: 18rpx;
 }
 
 .sk-sub {
-  height: 22rpx;
   width: 35%;
+  height: 22rpx;
   margin-bottom: 22rpx;
 }
 
 .sk-bar {
-  height: 8rpx;
   width: 100%;
+  height: 6rpx;
 }
 
 .error-card {
@@ -195,29 +183,33 @@
   flex-direction: column;
   align-items: center;
   gap: 24rpx;
-  padding: 48rpx 28rpx;
+  margin-top: 24rpx;
+  padding: 36rpx 28rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: #fff1f1;
 }
 
 .retry-btn {
   padding: 0 40rpx;
 }
 
-/* 失败详情（请求地址 + 微信原始错误）：真机排查靠它，必须完整可见 */
+/* 失败详情完整可见，便于真机排查 */
 .error-detail {
   display: block;
   width: 100%;
+  padding: 18rpx 20rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6e6e73;
   font-size: 22rpx;
   line-height: 1.5;
-  color: #8a8580;
   text-align: left;
-  word-break: break-all;
   white-space: pre-wrap;
-  background: #f7f4ee;
-  border-radius: 8rpx;
-  padding: 16rpx 20rpx;
+  word-break: break-all;
 }
 
 .load-more {
+  padding: 30rpx 0 16rpx;
   text-align: center;
-  padding: 28rpx 0 16rpx;
 }

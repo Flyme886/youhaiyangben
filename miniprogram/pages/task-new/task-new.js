@@ -14,8 +14,8 @@ Page({
     uploading: false,
     progress: 0,
     error: '',
-    /** 上传流程说明，展开/收起 */
-    stepsOpen: true
+    /** 低频流程说明默认收起，保持上传主路径简洁 */
+    stepsOpen: false
   },
 
   onLoad() {

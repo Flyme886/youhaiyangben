@@ -73,10 +73,23 @@ miniprogram/
 | 产物列表 / 下载 | GET | `/api/wx/tasks/{id}/files`、`/download/{filename}` |
 | 概览统计 / 健康检查 | GET | `/api/wx/stats`、`/api/wx/health` |
 
-**本仓库的主程序（`app/`）是 Web 端版本，不包含以上 `/api/wx/*` 模块。**
-把它们接到服务端还需要一层小程序专用补丁：`code2session` 换 openid + HMAC 自签 token、
-wx 用户与任务的关联表与迁移、12 个接口路由、以及 nginx 上 `/api/wx/` 的最长前缀转发
-（保证 `/api/wx/` 压过既有 `/api/`）。缺这层补丁，小程序能打开但所有请求都会 404。
+**以上接口层已内置在本仓库**（2026-11-03 从 `server-patch/` 合入，不需要再打补丁）：
+
+| 文件 | 作用 |
+| --- | --- |
+| `app/api_wx.py` | 12 个 `/api/wx/*` 路由（登录、任务 CRUD、上传、下载、统计） |
+| `app/wechat_auth.py` | `code2session` 换 openid + HMAC-SHA256 自签 token |
+| `app/db_wx.py` | `tasks` 表补 `owner_openid` / `owner_source`，实现用户归属隔离 |
+| `app/main.py` | 第 15-16 行导入、第 23 行 `include_router`、第 33 行 `wx_on_startup()` |
+| `deploy/nginx-harmful-sample.conf` | `/api/wx/` 最长前缀转发（压过既有 `/api/`） |
+| `tests/test_api_wx.py` | 82 项集成断言（鉴权、归属隔离、分页、路径穿越） |
+
+完整部署步骤、环境变量清单、逐条验证命令见 **`docs/小程序后端接口-server-patch.md`**。
+
+⚠️ **只跑小程序端不够。** 后端 `.env` 必须配好 `WX_APP_ID`、`WX_APP_SECRET`、
+`WX_TOKEN_SECRET` 三项（见根目录 `.env.example` 的「微信小程序」段）。
+缺任一项，登录接口会失败，小程序上的表现是「一直转圈 / 登录失败」；
+如果 `app/main.py` 的 router 没挂上，则是所有请求 404。两者排查方向不同。
 
 ## 状态口径
 

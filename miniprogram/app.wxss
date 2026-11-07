@@ -1,30 +1,35 @@
 /**
- * 全局样式 —— 沿用 Web 后台的「暖纸 + 墨绿」品牌色
- * 设计稿基准宽度 750rpx，所有尺寸用 rpx
+ * 全局视觉规范：纯白底、iPhone 式层级、墨绿品牌强调
+ * 设计稿基准宽度 750rpx，所有尺寸使用 rpx
  */
 page {
-  /* 品牌色板（与 app/static/style.css 保持一致） */
-  --paper: #f7f4ee;
-  --ink: #1d2522;
-  --muted: #66736e;
-  --line: #d8d2c6;
-  --panel: #fffdf7;
+  --paper: #ffffff;
+  --panel: #ffffff;
+  --ink: #1c1c1e;
+  --muted: #6e6e73;
+  --subtle: #8e8e93;
+  --line: #e5e5ea;
+  --fill: #f5f5f7;
+  --fill-strong: #ececf0;
   --accent: #1d6f5f;
-  --accent-strong: #114d42;
-  --warn: #9b4a20;
-  --bad: #9a2f2f;
-  --ok: #256a43;
+  --accent-strong: #125145;
+  --accent-soft: #edf6f3;
+  --warn: #9a5b13;
+  --warn-soft: #fff7e8;
+  --bad: #c43c3c;
+  --bad-soft: #fff1f1;
+  --ok: #248a3d;
 
-  --radius: 16rpx;
+  --radius: 18rpx;
   --radius-lg: 24rpx;
   --gap: 24rpx;
 
   background-color: var(--paper);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC',
-    'Microsoft YaHei', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: 28rpx;
-  line-height: 1.55;
+  line-height: 1.5;
   box-sizing: border-box;
 }
 
@@ -41,7 +46,29 @@ scroll-view {
 /* ---------- 布局 ---------- */
 .page-wrap {
   min-height: 100vh;
-  padding: 24rpx 24rpx 48rpx;
+  padding: 24rpx 32rpx 48rpx;
+  background: var(--paper);
+}
+
+.page-heading {
+  padding: 20rpx 0 36rpx;
+}
+
+.page-title {
+  display: block;
+  color: var(--ink);
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -1rpx;
+}
+
+.page-subtitle {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--muted);
+  font-size: 25rpx;
+  line-height: 1.5;
 }
 
 .row {
@@ -65,34 +92,32 @@ scroll-view {
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
-/* ---------- 卡片 ---------- */
+/* ---------- 内容分区：默认不使用浮层卡片 ---------- */
 .card {
+  padding: 32rpx 0;
+  margin: 0;
   background: var(--panel);
-  border: 1rpx solid var(--line);
-  border-radius: var(--radius);
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  border-bottom: 1rpx solid var(--line);
 }
 
 .card-tight {
-  padding: 22rpx 24rpx;
+  padding: 24rpx 0;
 }
 
 .card-title {
-  /* <text> 默认是 inline，两个相邻的 <text> 会挤在同一行，
-     必须显式 block 才能让标题和副标题各占一行。
-     （登录页没这个毛病是因为父容器是 flex column，会隐式块级化。） */
   display: block;
+  color: var(--ink);
   font-size: 30rpx;
   font-weight: 600;
-  color: var(--ink);
+  line-height: 1.4;
   margin-bottom: 6rpx;
 }
 
 .card-sub {
   display: block;
-  font-size: 24rpx;
   color: var(--muted);
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 
 /* ---------- 文本 ---------- */
@@ -114,6 +139,7 @@ scroll-view {
 
 .mono {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .ellipsis {
@@ -127,12 +153,12 @@ scroll-view {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 88rpx;
+  height: 96rpx;
   padding: 0 32rpx;
+  border: 0;
   border-radius: var(--radius);
   font-size: 30rpx;
   font-weight: 600;
-  border: 1rpx solid transparent;
   line-height: 1;
 }
 
@@ -142,113 +168,112 @@ scroll-view {
 
 .btn-primary {
   background: var(--accent);
-  color: #fff;
-  border-color: var(--accent-strong);
+  color: #ffffff;
 }
 
 .btn-primary[disabled] {
-  background: #a9bdb7;
-  border-color: #a9bdb7;
-  color: #f2f5f4;
+  background: var(--fill-strong);
+  color: #aeaeb2;
 }
 
 .btn-ghost {
-  background: transparent;
-  color: var(--accent-strong);
-  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .btn-muted {
-  background: transparent;
+  background: var(--fill);
   color: var(--muted);
-  border-color: var(--line);
 }
 
 .btn-danger {
-  background: transparent;
+  background: var(--fill);
   color: var(--bad);
-  border-color: var(--bad);
 }
 
 .btn-sm {
-  height: 64rpx;
-  padding: 0 24rpx;
+  height: 72rpx;
+  padding: 0 26rpx;
   font-size: 26rpx;
+  border-radius: 16rpx;
 }
 
 /* ---------- 表单 ---------- */
 .field {
-  margin-bottom: 28rpx;
+  margin-bottom: 30rpx;
 }
 
 .field-label {
   display: block;
-  font-size: 26rpx;
-  font-weight: 600;
   margin-bottom: 12rpx;
+  color: var(--ink);
+  font-size: 25rpx;
+  font-weight: 500;
 }
 
-/**
- * 注意：原生 <input> 不会因为 padding 自动撑高，必须给显式 height + line-height，
- * 否则文字会被上下裁掉（placeholder 只露一半）。textarea 相反，用 min-height。
- */
 .field-input {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  box-sizing: border-box;
-  background: #fff;
-  border: 1rpx solid var(--line);
-  border-radius: 12rpx;
-  padding: 0 22rpx;
-  font-size: 28rpx;
+  height: 96rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid transparent;
+  border-radius: 16rpx;
+  background: var(--fill);
   color: var(--ink);
+  font-size: 28rpx;
+  line-height: 96rpx;
+  box-sizing: border-box;
 }
 
 .field-textarea {
   width: 100%;
-  min-height: 140rpx;
-  box-sizing: border-box;
-  background: #fff;
-  border: 1rpx solid var(--line);
-  border-radius: 12rpx;
-  padding: 20rpx 22rpx;
+  min-height: 152rpx;
+  padding: 22rpx 24rpx;
+  border: 1rpx solid transparent;
+  border-radius: 16rpx;
+  background: var(--fill);
+  color: var(--ink);
   font-size: 28rpx;
   line-height: 1.6;
-  color: var(--ink);
+  box-sizing: border-box;
 }
 
 .field-hint {
-  font-size: 22rpx;
-  color: var(--muted);
+  display: block;
   margin-top: 10rpx;
+  color: var(--subtle);
+  font-size: 22rpx;
+  text-align: right;
 }
 
 /* ---------- 分割线 ---------- */
 .divider {
   height: 1rpx;
+  margin: 28rpx 0;
   background: var(--line);
-  margin: 24rpx 0;
 }
 
 /* ---------- 通用状态 ---------- */
 .loading-line {
-  text-align: center;
-  font-size: 24rpx;
-  color: var(--muted);
   padding: 28rpx 0;
+  color: var(--muted);
+  font-size: 24rpx;
+  text-align: center;
 }
 
 .error-text {
   color: var(--bad);
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.card-hover {
+  opacity: 0.55;
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #ece7dd 25%, #f4f0e8 37%, #ece7dd 63%);
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #f0f0f2 25%, #f8f8fa 37%, #f0f0f2 63%);
   background-size: 400% 100%;
   animation: skeleton-loading 1.4s ease infinite;
-  border-radius: 8rpx;
 }
 
 @keyframes skeleton-loading {

@@ -38,22 +38,29 @@ const FORCE_BASE_URL = '';
 
 const PROFILES = {
   dev: {
-    // 内网 IP 或本机地址都可以，只要开发者工具关了域名校验
-    baseUrl: 'http://127.0.0.1:8787',
+    // 后端只在云服务器上跑（/opt/harmful-sample-web，trendradar-ipv4），
+    // 本机没有 8787 服务，所以联调环境同样打线上地址。
+    // 若某天在本地起了后端，再改回 http://127.0.0.1:8787 并关掉域名校验。
+    // 开发者工具若报「url not in domain list」，去
+    // 「详情 → 本地设置」勾选「不校验合法域名、web-view、TLS 版本以及 HTTPS 证书」。
+    baseUrl: 'https://zhuiguang.click',
     debug: true
   },
   prod: {
     // 复用既有的 zhuiguang.click：它已经通过 Cloudflare Tunnel 指向这台服务器，
     // nginx 上 /api/wx/ 转发到本机 8787。结尾不要带斜杠。
     //
-    // ⚠️ 走法说明（重要）：
-    //   目前该域名尚未确认 ICP 备案，因此**没有**加入微信后台的「服务器域名」白名单。
-    //   在这个前提下，只有两种方式能让请求真正发出去：
+    // 走法说明：
+    //   该域名已完成 ICP 备案（2026-10）。仍需在微信公众平台
+    //   「开发管理 → 开发设置 → 服务器域名」把它**同时**填进
+    //   request / uploadFile / downloadFile 三类白名单，
+    //   三类缺一类，上传或下载就会整条挂掉。结尾不要带斜杠。
+    //
+    //   白名单还没配好的临时办法（例如刚换了域名）：
     //     · 开发者工具模拟器：勾选「不校验合法域名、web-view、TLS 版本以及 HTTPS 证书」
-    //     · 真机 / 体验版：在小程序里点右上角胶囊「···」→ 滑到底部 → 打开调试
-    //   体验版的「正常模式」仍然会被微信拦下来（报 url not in domain list）。
-    //   若后续备案确认通过，只要把本域名填进 request / uploadFile / downloadFile
-    //   三类白名单，就可以去掉「打开调试」这一步，代码无需再改。
+    //     · 真机 / 体验版：胶囊「···」→ 打开调试
+    //   体验版「正常模式」仍会被微信拦下来（报 url not in domain list），
+    //   这是白名单限制，不是代码问题。白名单配好后无需再改代码。
     baseUrl: 'https://zhuiguang.click',
     debug: false
   }

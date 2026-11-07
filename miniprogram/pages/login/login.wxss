@@ -1,62 +1,61 @@
 .login-page {
-  min-height: 100vh;
-  padding: 120rpx 48rpx 60rpx;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(120% 60% at 0% 0%, rgba(29, 111, 95, 0.1) 0%, rgba(247, 244, 238, 0) 60%),
-    #f7f4ee;
+  min-height: 100vh;
+  padding: 112rpx 40rpx 52rpx;
+  background: #ffffff;
 }
 
 /* ---------- 品牌区 ---------- */
 .brand {
-  margin-bottom: 48rpx;
+  margin-bottom: 44rpx;
 }
 
 .brand-mark {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 24rpx;
-  background: #1d6f5f;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  width: 88rpx;
+  height: 88rpx;
   margin-bottom: 32rpx;
+  border-radius: 22rpx;
+  background: #1d6f5f;
 }
 
 .bar {
-  height: 8rpx;
-  border-radius: 4rpx;
-  background: #f7f4ee;
+  height: 6rpx;
   margin: 4rpx 0;
+  border-radius: 3rpx;
+  background: #ffffff;
 }
 
 .bar-a {
-  width: 44rpx;
+  width: 40rpx;
 }
 
 .bar-b {
-  width: 56rpx;
+  width: 50rpx;
 }
 
 .bar-c {
-  width: 32rpx;
+  width: 30rpx;
 }
 
 .brand-title {
   display: block;
-  font-size: 56rpx;
-  font-weight: 600;
-  letter-spacing: 2rpx;
-  color: #1d2522;
+  color: #1c1c1e;
+  font-size: 52rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -1rpx;
 }
 
 .brand-sub {
   display: block;
-  margin-top: 14rpx;
+  margin-top: 16rpx;
+  color: #6e6e73;
   font-size: 26rpx;
-  color: #66736e;
   line-height: 1.6;
 }
 
@@ -64,33 +63,32 @@
 .probe {
   display: flex;
   align-items: center;
-  padding: 18rpx 22rpx;
-  border-radius: 12rpx;
-  border: 1rpx solid #d8d2c6;
-  background: #fffdf7;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 16rpx;
+  background: #f5f5f7;
 }
 
 .probe-dot {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  margin-right: 14rpx;
   flex-shrink: 0;
-  background: #b4b2a9;
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 14rpx;
+  border-radius: 50%;
+  background: #aeaeb2;
 }
 
 .probe-pending .probe-dot {
-  background: #d0a15c;
-  animation: probe-blink 1s ease-in-out infinite;
+  background: #c7a15a;
+  animation: probe-blink 1.4s ease-in-out infinite;
 }
 
 .probe-ok .probe-dot {
-  background: #256a43;
+  background: #248a3d;
 }
 
 .probe-bad .probe-dot {
-  background: #9a2f2f;
+  background: #c43c3c;
 }
 
 @keyframes probe-blink {
@@ -99,27 +97,26 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.35;
   }
 }
 
 .probe-text {
   flex: 1;
+  color: #6e6e73;
   font-size: 24rpx;
-  color: #66736e;
 }
 
 .probe-retry {
+  padding-left: 16rpx;
+  color: #1d6f5f;
   font-size: 24rpx;
   font-weight: 600;
-  color: #1d6f5f;
-  padding-left: 16rpx;
 }
 
-/* 探活失败时的原因说明，紧贴上面的 probe，别被默认间距撑开 */
 .probe-detail {
   margin-top: -12rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
 }
 
 .probe-detail .error-text {
@@ -127,13 +124,11 @@
   word-break: break-all;
 }
 
-/* ---------- 表单面板 ---------- */
+/* ---------- 登录表单：白底无浮层 ---------- */
 .panel {
-  background: #fffdf7;
-  border: 1rpx solid #d8d2c6;
-  border-radius: 24rpx;
-  padding: 40rpx 32rpx;
-  box-shadow: 0 12rpx 40rpx rgba(38, 42, 36, 0.06);
+  padding: 0;
+  border: 0;
+  background: #ffffff;
 }
 
 .login-main {
@@ -143,27 +138,26 @@
 .or {
   display: flex;
   align-items: center;
-  margin: 40rpx 0 32rpx;
+  margin: 36rpx 0 30rpx;
 }
 
 .or-line {
   flex: 1;
   height: 1rpx;
-  background: #d8d2c6;
+  background: #e5e5ea;
 }
 
 .or-text {
   padding: 0 20rpx;
+  color: #8e8e93;
   font-size: 22rpx;
-  color: #66736e;
 }
 
 .error-box {
-  margin-top: 28rpx;
-  padding: 20rpx 22rpx;
-  background: #fbeaea;
-  border: 1rpx solid #dda8a8;
-  border-radius: 12rpx;
+  margin-top: 26rpx;
+  padding: 22rpx;
+  border-radius: 16rpx;
+  background: #fff1f1;
 }
 
 .error-box .error-text {
@@ -173,9 +167,9 @@
 
 /* ---------- 底部 ---------- */
 .footer {
-  margin-top: auto;
-  padding-top: 60rpx;
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+  margin-top: auto;
+  padding-top: 60rpx;
 }

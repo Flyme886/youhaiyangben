@@ -1,4 +1,9 @@
 <view class="page-wrap">
+  <view class="page-heading">
+    <text class="page-title">我的</text>
+    <text class="page-subtitle">账号、任务数据与使用帮助</text>
+  </view>
+
   <!-- 账号 -->
   <view class="card account">
     <view class="avatar">样</view>
@@ -42,7 +47,7 @@
   </view>
 
   <!-- 环境信息 -->
-  <view class="card">
+  <view class="card environment-card">
     <view class="flex-between" bindtap="toggleDetails">
       <text class="card-title">环境信息</text>
       <text class="tiny muted">{{detailsOpen ? '收起' : '展开'}}</text>

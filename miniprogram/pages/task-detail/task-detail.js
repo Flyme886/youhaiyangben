@@ -123,6 +123,8 @@ Page({
       errorList: describeError(res.error_message),
       capture: counts.capture,
       quality: counts.quality,
+      // 结案结论：后端每次任务收尾时生成（大模型不可用则降级模板），可能为空
+      conclusion: String((summary && summary.conclusion) || '').trim(),
       files: files,
       logTail: res.log_tail || '',
       live: isLive(res.status),

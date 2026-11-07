@@ -1,4 +1,4 @@
-<view class="page-wrap">
+<view class="page-wrap detail-page">
   <!-- 加载中 -->
   <block wx:if="{{loading}}">
     <view class="card">
@@ -15,8 +15,8 @@
   </view>
 
   <block wx:else>
-    <!-- 概览 -->
-    <view class="card">
+    <!-- 当前状态与进度 -->
+    <view class="card overview">
       <view class="head">
         <text class="task-name">{{task.name}}</text>
         <status-tag status="{{task.status}}" />
@@ -24,8 +24,8 @@
       <text class="tiny muted status-hint">{{statusHint}}</text>
 
       <view class="meta" bindtap="onCopyId" hover-class="meta-hover">
-        <text class="tiny muted mono">{{task.id}}</text>
-        <text class="tiny muted copy-tip">点击复制</text>
+        <text class="tiny muted mono ellipsis flex-1">{{task.id}}</text>
+        <text class="tiny copy-tip">复制</text>
       </view>
 
       <view class="progress">
@@ -33,8 +33,66 @@
       </view>
 
       <view class="meta-line">
-        <text class="tiny muted">创建 {{createdText}}</text>
+        <text class="tiny muted">创建于 {{createdText}}</text>
         <text wx:if="{{durationText}}" class="tiny muted">耗时 {{durationText}}</text>
+      </view>
+    </view>
+
+    <!-- 需要用户处理时，操作紧跟状态 -->
+    <view wx:if="{{actions.resume || actions.cancel}}" class="actions">
+      <view
+        wx:if="{{actions.resume}}"
+        class="btn flex-1 {{task.status === 'paused_captcha' ? 'btn-primary' : 'btn-ghost'}}"
+        bindtap="onResume"
+      >
+        {{task.status === 'paused_captcha' ? '重跑任务' : '补齐图片'}}
+      </view>
+      <view
+        wx:if="{{actions.cancel}}"
+        class="btn btn-danger flex-1"
+        bindtap="onCancel"
+      >
+        取消任务
+      </view>
+    </view>
+
+    <!-- 结果优先：产物下载放在处理明细之前 -->
+    <view class="card download-section">
+      <text class="card-title">结果文件</text>
+      <view wx:if="{{files.length > 0}}" class="file-list">
+        <view wx:for="{{files}}" wx:key="name" class="file-row" bindtap="onDownload" data-name="{{item.name}}">
+          <view class="file-icon file-{{item.previewable ? 'doc' : 'zip'}}">{{item.extLabel}}</view>
+          <view class="flex-1 file-info">
+            <text class="file-name ellipsis">{{item.name}}</text>
+            <text class="tiny muted">{{item.sizeText}}</text>
+          </view>
+          <text class="file-action">{{item.previewable ? '预览' : '发送'}}</text>
+        </view>
+      </view>
+      <view wx:else class="empty-inline">
+        <text class="tiny muted">{{live ? '任务处理中，结果生成后可在此下载' : '没有可下载的结果文件'}}</text>
+      </view>
+    </view>
+
+    <!-- 结案结论：后端在任务收尾时生成，失败任务也会给出原因 -->
+    <view wx:if="{{conclusion}}" class="card conclusion-section">
+      <text class="card-title">结案结论</text>
+      <text class="conclusion-text">{{conclusion}}</text>
+    </view>
+
+    <!-- 指标 -->
+    <view class="metrics">
+      <view class="metric">
+        <text class="metric-label">Word 份数</text>
+        <text class="metric-value">{{task.docx_count}}</text>
+      </view>
+      <view class="metric">
+        <text class="metric-label">未附图条数</text>
+        <text class="metric-value">{{task.issue_count}}</text>
+      </view>
+      <view class="metric">
+        <text class="metric-label">完成时间</text>
+        <text class="metric-value metric-value-sm">{{finishedText ? finishedText : '处理中'}}</text>
       </view>
     </view>
 
@@ -56,41 +114,7 @@
       <text class="tiny muted step-current">当前步骤：{{stepText || '等待执行'}}</text>
     </view>
 
-    <!-- 指标 -->
-    <view class="metrics">
-      <view class="metric">
-        <text class="metric-label">Word 份数</text>
-        <text class="metric-value">{{task.docx_count}}</text>
-      </view>
-      <view class="metric">
-        <text class="metric-label">未附图条数</text>
-        <text class="metric-value">{{task.issue_count}}</text>
-      </view>
-      <view class="metric">
-        <text class="metric-label">完成时间</text>
-        <text class="metric-value metric-value-sm">{{finishedText ? finishedText : '处理中'}}</text>
-      </view>
-    </view>
-
-    <!-- 操作 -->
-    <view wx:if="{{actions.resume || actions.cancel}}" class="actions">
-      <view
-        wx:if="{{actions.resume}}"
-        class="btn flex-1 {{task.status === 'paused_captcha' ? 'btn-primary' : 'btn-ghost'}}"
-        bindtap="onResume"
-      >
-        {{task.status === 'paused_captcha' ? '重跑任务' : '补齐图片'}}
-      </view>
-      <view
-        wx:if="{{actions.cancel}}"
-        class="btn btn-danger flex-1"
-        bindtap="onCancel"
-      >
-        取消任务
-      </view>
-    </view>
-
-    <!-- 交付说明（验证码/截图缺少时只有一句简短说明，不阻塞交付） -->
+    <!-- 交付说明 -->
     <view wx:if="{{errorList.length > 0}}" class="card warn-card">
       <text class="card-title">交付说明</text>
       <view wx:for="{{errorList}}" wx:key="*this" class="warn-item">
@@ -122,28 +146,10 @@
       </block>
     </view>
 
-    <!-- 产物下载 -->
-    <view class="card">
-      <text class="card-title">产物下载</text>
-      <view wx:if="{{files.length > 0}}" class="file-list">
-        <view wx:for="{{files}}" wx:key="name" class="file-row" bindtap="onDownload" data-name="{{item.name}}">
-          <view class="file-icon file-{{item.previewable ? 'doc' : 'zip'}}">{{item.extLabel}}</view>
-          <view class="flex-1 file-info">
-            <text class="file-name ellipsis">{{item.name}}</text>
-            <text class="tiny muted">{{item.sizeText}}</text>
-          </view>
-          <text class="file-action">{{item.previewable ? '预览' : '发送'}}</text>
-        </view>
-      </view>
-      <view wx:else class="empty-inline">
-        <text class="tiny muted">{{live ? '任务处理中，产物生成后可在此下载' : '没有可下载的产物'}}</text>
-      </view>
-    </view>
-
-    <!-- 运行日志 -->
-    <view class="card">
+    <!-- 技术信息默认折叠 -->
+    <view class="card log-section">
       <view class="flex-between" bindtap="toggleLog">
-        <text class="card-title">运行日志</text>
+        <text class="card-title">技术信息</text>
         <text class="tiny muted">{{logOpen ? '收起' : '展开'}}</text>
       </view>
 

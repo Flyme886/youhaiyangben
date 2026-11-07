@@ -1,59 +1,64 @@
-/* ---------------- 概览 ---------------- */
+/* ---------------- 当前状态 ---------------- */
+.overview {
+  padding-top: 20rpx;
+}
+
 .head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .task-name {
   flex: 1;
-  font-size: 36rpx;
+  color: #1c1c1e;
+  font-size: 38rpx;
   font-weight: 600;
-  color: #1d2522;
   line-height: 1.35;
+  letter-spacing: -0.5rpx;
 }
 
 .status-hint {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 12rpx;
+  line-height: 1.55;
 }
 
 .meta {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin-top: 18rpx;
-  padding: 12rpx 16rpx;
-  background: #f4f1e9;
-  border-radius: 10rpx;
+  margin-top: 22rpx;
+  padding: 10rpx 0;
 }
 
 .meta-hover {
-  background: #ece7dd;
+  opacity: 0.55;
 }
 
 .copy-tip {
+  flex-shrink: 0;
   color: #1d6f5f;
 }
 
 .progress {
-  height: 12rpx;
-  border-radius: 6rpx;
-  background: #ece7dd;
+  height: 6rpx;
+  margin-top: 20rpx;
   overflow: hidden;
-  margin-top: 24rpx;
+  border-radius: 3rpx;
+  background: #ececf0;
 }
 
 .progress-bar {
   height: 100%;
-  border-radius: 6rpx;
+  border-radius: 3rpx;
   background: #1d6f5f;
-  transition: width 0.4s ease;
+  transition: width 0.25s ease;
 }
 
 .bar-live {
-  background: linear-gradient(90deg, #1d6f5f 0%, #3f9a83 100%);
+  background: #1d6f5f;
 }
 
 .meta-line {
@@ -64,121 +69,107 @@
   margin-top: 16rpx;
 }
 
-/* ---------------- 步骤流 ---------------- */
-.steps {
-  margin-top: 26rpx;
-}
-
-.step {
+/* ---------------- 操作 ---------------- */
+.actions {
   display: flex;
-  align-items: flex-start;
+  gap: 18rpx;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #e5e5ea;
 }
 
-.step-rail {
-  width: 32rpx;
+/* ---------------- 结果文件 ---------------- */
+.file-list {
+  margin-top: 16rpx;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #eeeef2;
+}
+
+.file-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.file-doc {
+  background: #edf6f3;
+  color: #1d6f5f;
+}
+
+.file-zip {
+  background: #f5f5f7;
+  color: #6e6e73;
+}
+
+.file-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 6rpx;
+}
+
+.file-name {
+  color: #1c1c1e;
+  font-size: 27rpx;
+  font-weight: 500;
+}
+
+.file-action {
   flex-shrink: 0;
-  padding-top: 6rpx;
-}
-
-.step-dot {
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 50%;
-  background: #ded8cb;
-  border: 3rpx solid #f7f4ee;
-  box-sizing: content-box;
-}
-
-.dot-done {
-  background: #256a43;
-}
-
-.dot-doing {
-  background: #1d6f5f;
-  animation: dot-pulse 1.3s ease-in-out infinite;
-}
-
-@keyframes dot-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(29, 111, 95, 0.35);
-  }
-  50% {
-    box-shadow: 0 0 0 12rpx rgba(29, 111, 95, 0);
-  }
-}
-
-.step-line {
-  width: 3rpx;
-  flex: 1;
-  min-height: 48rpx;
-  background: #ded8cb;
-  margin: 4rpx 0;
-}
-
-.line-done {
-  background: #a8c9b4;
-}
-
-.step-body {
-  flex: 1;
-  padding: 0 0 28rpx 20rpx;
-}
-
-.step-label {
-  display: block;
-  font-size: 28rpx;
-  color: #b4b2a9;
-  line-height: 1.4;
-}
-
-.label-done {
-  color: #1d2522;
-}
-
-.label-doing {
+  padding: 12rpx 0 12rpx 16rpx;
   color: #1d6f5f;
+  font-size: 25rpx;
   font-weight: 600;
 }
 
-.step-current {
-  display: block;
-  padding-top: 18rpx;
-  border-top: 1rpx dashed #d8d2c6;
+.empty-inline {
+  padding: 32rpx 0 12rpx;
+  text-align: left;
 }
 
 /* ---------------- 指标 ---------------- */
 .metrics {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 20rpx;
+  gap: 20rpx;
+  padding: 30rpx 0;
+  border-bottom: 1rpx solid #e5e5ea;
 }
 
 .metric {
   flex: 1;
-  background: #fffdf7;
-  border: 1rpx solid #d8d2c6;
-  border-radius: 16rpx;
-  padding: 22rpx 18rpx;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
 .metric-label {
+  color: #6e6e73;
   font-size: 22rpx;
-  color: #66736e;
 }
 
 .metric-value {
-  margin-top: 10rpx;
+  margin-top: 12rpx;
+  color: #1c1c1e;
   font-size: 44rpx;
   font-weight: 600;
-  color: #1d2522;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-value-sm {
@@ -188,21 +179,100 @@
   word-break: break-all;
 }
 
-.value-warn {
-  color: #9b4a20;
+/* ---------------- 步骤流 ---------------- */
+.steps {
+  margin-top: 28rpx;
 }
 
-/* ---------------- 操作 ---------------- */
-.actions {
+.step {
   display: flex;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
+  align-items: flex-start;
+}
+
+.step-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 28rpx;
+  padding-top: 8rpx;
+}
+
+.step-dot {
+  box-sizing: content-box;
+  width: 14rpx;
+  height: 14rpx;
+  border: 4rpx solid #ffffff;
+  border-radius: 50%;
+  background: #d1d1d6;
+}
+
+.dot-done {
+  background: #248a3d;
+}
+
+.dot-doing {
+  background: #1d6f5f;
+  animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(29, 111, 95, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 10rpx rgba(29, 111, 95, 0);
+  }
+}
+
+.step-line {
+  flex: 1;
+  width: 2rpx;
+  min-height: 52rpx;
+  margin: 4rpx 0;
+  background: #e5e5ea;
+}
+
+.line-done {
+  background: #cfe8d6;
+}
+
+.step-body {
+  flex: 1;
+  padding: 0 0 30rpx 20rpx;
+}
+
+.step-label {
+  display: block;
+  color: #8e8e93;
+  font-size: 28rpx;
+  line-height: 1.4;
+}
+
+.label-done {
+  color: #1c1c1e;
+}
+
+.label-doing {
+  color: #1d6f5f;
+  font-weight: 600;
+}
+
+.step-current {
+  display: block;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #e5e5ea;
+  line-height: 1.55;
 }
 
 /* ---------------- 异常提示 ---------------- */
 .warn-card {
-  background: #fbf0e7;
-  border-color: #e0b799;
+  margin-top: 28rpx;
+  padding: 26rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: #fff7e8;
 }
 
 .warn-item {
@@ -212,25 +282,25 @@
 }
 
 .warn-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background: #9b4a20;
-  margin: 12rpx 16rpx 0 0;
   flex-shrink: 0;
+  width: 10rpx;
+  height: 10rpx;
+  margin: 14rpx 16rpx 0 0;
+  border-radius: 50%;
+  background: #9a5b13;
 }
 
 .warn-text {
   flex: 1;
+  color: #76501e;
   font-size: 26rpx;
-  color: #6d3a1a;
   line-height: 1.6;
 }
 
 /* ---------------- 采集状态 ---------------- */
 .group-label {
   display: block;
-  margin-top: 22rpx;
+  margin-top: 24rpx;
 }
 
 .chips {
@@ -241,128 +311,63 @@
 }
 
 .chip {
+  padding: 12rpx 18rpx;
+  border-radius: 14rpx;
+  background: #fff7e8;
+  color: #9a5b13;
   font-size: 22rpx;
   line-height: 1;
-  padding: 10rpx 16rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid #e0b799;
-  background: #fbf0e7;
-  color: #9b4a20;
 }
 
 .chip-ok {
-  border-color: #a8c9b4;
-  background: #eaf3ec;
-  color: #256a43;
+  background: #f0f8f2;
+  color: #248a3d;
 }
 
-/* ---------------- 文件 ---------------- */
-.file-list {
-  margin-top: 22rpx;
+/* ---------------- 技术日志 ---------------- */
+.log-section {
+  border-bottom: 0;
 }
 
-.file-row {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid #ece7dd;
-}
-
-.file-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.file-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 12rpx;
-  color: #fff;
-  font-size: 20rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  letter-spacing: 1rpx;
-}
-
-.file-doc {
-  background: #1d6f5f;
-}
-
-.file-zip {
-  background: #66736e;
-}
-
-.file-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.file-name {
-  font-size: 27rpx;
-  font-weight: 600;
-  color: #1d2522;
-}
-
-.file-action {
-  font-size: 25rpx;
-  font-weight: 600;
-  color: #1d6f5f;
-  padding: 8rpx 16rpx;
-  border: 1rpx solid #1d6f5f;
-  border-radius: 10rpx;
-  flex-shrink: 0;
-}
-
-.empty-inline {
-  padding: 36rpx 0 12rpx;
-  text-align: center;
-}
-
-/* ---------------- 日志 ---------------- */
 .log-box {
-  margin-top: 22rpx;
-  padding: 22rpx;
-  background: #202823;
-  border-radius: 12rpx;
   max-height: 640rpx;
+  margin-top: 22rpx;
+  padding: 24rpx;
   overflow-y: auto;
+  border-radius: 16rpx;
+  background: #f5f5f7;
 }
 
 .log-text {
+  color: #48484a;
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 21rpx;
   line-height: 1.7;
-  color: #dfe8e1;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .copy-btn {
-  margin-top: 22rpx;
   width: 100%;
+  margin-top: 22rpx;
 }
 
 /* ---------------- 骨架 / 错误 ---------------- */
 .sk-title {
-  height: 40rpx;
   width: 60%;
+  height: 40rpx;
   margin-bottom: 20rpx;
 }
 
 .sk-sub {
-  height: 22rpx;
   width: 40%;
+  height: 22rpx;
   margin-bottom: 26rpx;
 }
 
 .sk-bar {
-  height: 12rpx;
   width: 100%;
+  height: 6rpx;
 }
 
 .error-card {
@@ -370,5 +375,20 @@
   flex-direction: column;
   align-items: center;
   gap: 26rpx;
-  padding: 56rpx 28rpx;
+  margin-top: 32rpx;
+  padding: 40rpx 28rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: #fff1f1;
+}
+
+/* ---------------- 结案结论 ---------------- */
+.conclusion-text {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--ink);
+  font-size: 28rpx;
+  line-height: 1.75;
+  white-space: pre-line;
+  word-break: break-word;
 }
