@@ -3,14 +3,14 @@
 """prep_manifest.py —— 监测 Excel → 有序抓取清单（manifest.json）
 
 用法：
-  prep_manifest.py <xlsx> <outdir> [--sheets 搜索结果,待复核] [--offset 0] [--limit 300]
+  prep_manifest.py <xlsx> <outdir> [--sheets 搜索结果,待复核] [--day 2 --rows 400] [--offset 0 --limit 400]
                    [--out manifest.json] [--title-max 32]
 
 规则：
 - 多张 sheet 按给定顺序串成一条有序清单（默认「搜索结果」在前、「待复核」在后）
 - 按归一化页面地址去重：同一视频/帖子被多个账号转发时，取「重复次数」最高的一条做代表
 - 保留「攻击词」「攻击对象」，供抓取阶段在评论区做 DOM 命中定位与红框圈注
-- --offset / --limit 用来切「每天 N 条」的那一段；item_id 是全局序号，编号可跨天连续
+- --offset / --limit 用来切「每天 400 条」的那一段；item_id 是全局序号，编号可跨天连续
 - 表头自适应，字段名不必完全一致（见 COLS 里的候选名）
 
 输出的 manifest.json 结构：
@@ -133,11 +133,17 @@ def main():
     ap.add_argument("--sheets", default="搜索结果,待复核",
                     help="按顺序拼接的 sheet 名，逗号分隔；都不存在时退回第一张")
     ap.add_argument("--offset", type=int, default=0, help="从第几条开始（0 起算）")
-    ap.add_argument("--limit", type=int, default=300, help="本批取多少条")
+    ap.add_argument("--limit", type=int, default=400, help="本批取多少条")
+    ap.add_argument("--day", type=int, default=0, help="第几天，配合 --rows 自动算 offset（第 2 天 = 跳过前 1 天）")
+    ap.add_argument("--rows", type=int, default=400, help="每天扫多少条，默认 400")
     ap.add_argument("--out", default="manifest.json")
     ap.add_argument("--title-max", type=int, default=32)
     ap.add_argument("--exclude", default="", help="排除词表，一行一个正则；命中只打标记，不动 item_id")
     args = ap.parse_args()
+
+    if args.day > 0:
+        args.offset = (args.day - 1) * args.rows
+        args.limit = args.rows
 
     # 排除词：涉政机构介入 / 信访 / 举报维权。只打 excluded 标记、item_id 保持全局序号，
     # 这样已有的抓取记录（results_*.jsonl 按 item_id 关联）不会错位。
