@@ -136,7 +136,24 @@ def main():
     ap.add_argument("--limit", type=int, default=300, help="本批取多少条")
     ap.add_argument("--out", default="manifest.json")
     ap.add_argument("--title-max", type=int, default=32)
+    ap.add_argument("--exclude", default="", help="排除词表，一行一个正则；命中只打标记，不动 item_id")
     args = ap.parse_args()
+
+    # 排除词：涉政机构介入 / 信访 / 举报维权。只打 excluded 标记、item_id 保持全局序号，
+    # 这样已有的抓取记录（results_*.jsonl 按 item_id 关联）不会错位。
+    patterns = []
+    if args.exclude:
+        for line in Path(args.exclude).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                patterns.append(re.compile(line))
+
+    def exclude_hit(text):
+        for rx in patterns:
+            m = rx.search(text or "")
+            if m:
+                return m.group()
+        return ""
 
     xlsx = Path(args.xlsx)
     outdir = Path(args.outdir)
@@ -198,7 +215,7 @@ def main():
     print(f"源表 {total_rows} 行 → 去重 {len(uniq)} 条（sheet: {', '.join(sheets)}）")
 
     seg = uniq[args.offset: args.offset + args.limit]
-    items = []
+    items, n_ex = [], 0
     for global_no, rec in enumerate(seg, start=args.offset + 1):
         title = rec["title_raw"]
         if title in PLACEHOLDER:
@@ -225,6 +242,11 @@ def main():
             "repeat": rec["repeat"],
             "from_sheet": rec["sheet"],
         })
+        w = exclude_hit(f"{items[-1]['title_full']} {items[-1]['summary']}")
+        if w:
+            items[-1]["excluded"] = True
+            items[-1]["exclude_word"] = w
+            n_ex += 1
 
     p = outdir / args.out
     p.write_text(json.dumps({
@@ -232,6 +254,7 @@ def main():
             "source": xlsx.name, "sheets": sheets, "total_all": len(uniq),
             "segment": [args.offset + 1, args.offset + len(seg)], "count": len(seg),
             "platforms": dict(Counter(x["platform"] for x in seg)),
+            "excluded": n_ex,
         },
         "items": items,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -239,6 +262,8 @@ def main():
     print(f"{p.name}: {len(seg)} 条（全局第 {args.offset + 1}-{args.offset + len(seg)} 条）")
     print("平台:", dict(Counter(x["platform_name"] for x in seg).most_common()))
     print("无攻击词:", sum(1 for x in items if not x["attack_words"]))
+    if patterns:
+        print(f"排除词命中 {n_ex} 条（标记 excluded，不抓取不出稿）")
 
 
 if __name__ == "__main__":

@@ -187,10 +187,33 @@ def main() -> int:
     ap.add_argument("--batch-index", type=int, default=1, help="批次序号起点，补抓时填 2 即出「第二批」")
     ap.add_argument("--keep-blank", action="store_true", help="旧行为：无图条目留空占位（默认整条不记录）")
     ap.add_argument("--triage", default="", help="triage.py --json 的分类结果，用于区分已删/限流")
+    ap.add_argument("--exclude", default="", help="排除词表：命中标题/摘要/命中评论正文的，整条剔除")
     args = ap.parse_args()
     if not args.name_date:
         d = datetime.date.today()
         args.name_date = f"{d.month}月{d.day}日"
+
+    patterns = []
+    if args.exclude:
+        for line in Path(args.exclude).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                patterns.append(re.compile(line))
+
+    def exclude_word(item, shot):
+        if item.get("excluded"):
+            return item.get("exclude_word") or "清单阶段已标记"
+        if not patterns:
+            return ""
+        # 清单阶段只看得到标题/摘要；评论区里冒出「巡视组」的，只有这里能抓到
+        text = " ".join([item.get("title_full") or item.get("title") or "",
+                         item.get("summary") or "",
+                         (shot or {}).get("hit_text") or ""])
+        for rx in patterns:
+            m = rx.search(text)
+            if m:
+                return m.group()
+        return ""
 
     raw = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     items = raw["items"] if isinstance(raw, dict) else raw
@@ -204,9 +227,13 @@ def main() -> int:
         for r in json.loads(Path(args.triage).read_text(encoding="utf-8")).get("rows", []):
             verdict[str(r["shot_key"])] = r
 
-    usable_items, dropped = [], []
+    usable_items, dropped, excluded = [], [], []
     for item in items:
         shot = shots.get(str(item["shot_key"]))
+        w = exclude_word(item, shot)
+        if w:
+            excluded.append((item, w))
+            continue
         img = shots_dir / f"{item['shot_key']}.png"
         if args.keep_blank:
             usable_items.append(item)
@@ -260,6 +287,10 @@ def main() -> int:
     )
     print(f"合计入册 {len(usable_items)} 条 / 图 {imgs} 张")
     show = PLATFORM_SHOW.get(platform_key_of(usable_items), "该平台")
+    if excluded:
+        print(f"排除词剔除 {len(excluded)} 条：")
+        for item, w in excluded:
+            print(f"  [{w}] {item.get('author', '') or '无署名'} {item.get('link', '')}")
     if dropped:
         gone = [i for i in dropped if verdict.get(str(i["shot_key"]), {}).get("verdict") == "deleted"]
         stuck = [i for i in dropped if i not in gone]

@@ -41,7 +41,8 @@ const DELETED_RE = /你要观看的视频不存在|视频不存在|作品已删�
 const LOGIN_RE = /登录后查看|请先登录|扫码登录|登录可见/;
 const ERROR_PAGE_RE = /出错啦|出错了|页面加载失败|系统繁忙|请求崩溃|网络错误/;
 
-const all = JSON.parse(await fs.readFile(cfg.manifest, "utf8")).items;
+// excluded = 命中了排除词，不抓也不出稿
+const all = JSON.parse(await fs.readFile(cfg.manifest, "utf8")).items.filter((it) => !it.excluded);
 const done = new Set();
 const attempts = new Map();
 try {
