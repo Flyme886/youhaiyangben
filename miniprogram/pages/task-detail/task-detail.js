@@ -8,39 +8,64 @@ const {
   canResume,
   canCancel,
   isLive,
+  sealOf,
+  coverageOf,
+  currentStepIndex,
   describeError,
   captureSummary
 } = require('../../utils/status');
-const { formatFull, fromNow, durationText, formatSize, safeFileName } = require('../../utils/util');
+const { formatFull, fromNow, durationText, formatSize, safeFileName, formatDateDot } = require('../../utils/util');
 const config = require('../../config/index');
 
 const PREVIEWABLE = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf'];
+
+/** 底栏：每个状态只给最该做的一两件事 */
+function barOf(task, files) {
+  const status = task.status;
+  const firstDoc = files.filter((f) => f.ext === 'docx')[0];
+  const bar = {
+    cancel: canCancel(status),
+    resume: canResume(status),
+    resumeText: status === 'partial_completed' ? '补齐图片' : '重跑任务',
+    // 只有一册时才把「打开」放进底栏；多册在列表里逐个点更清楚
+    open: !isLive(status) && !!firstDoc && files.filter((f) => f.ext === 'docx').length === 1,
+    openName: firstDoc ? firstDoc.name : ''
+  };
+  bar.show = bar.cancel || bar.resume || bar.open;
+  return bar;
+}
 
 Page({
   data: {
     taskId: '',
     task: null,
-    steps: [],
-    progress: 0,
-    statusLabel: '',
-    statusTone: 'muted',
-    statusHint: '',
-    stepText: '等待执行',
+    live: false,
 
-    createdFull: '',
+    steps: [],
+    stepText: '',
+    stepNo: 1,
+    progress: 0,
+    statusHint: '',
+
+    seal: null,
+    sealDate: '',
+    stampNow: false,
+    coverage: null,
+    quality: [],
+
     createdText: '',
+    createdFull: '',
     finishedText: '',
     durationText: '',
 
     errorList: [],
-    capture: [],
-    quality: [],
+    conclusion: '',
     files: [],
     logTail: '',
-    logOpen: false,
 
-    actions: { resume: false, cancel: false },
-    live: false,
+    stepsOpen: false,
+    logOpen: false,
+    bar: { show: false },
 
     loading: true,
     busy: false,
@@ -48,14 +73,17 @@ Page({
   },
 
   onLoad(options) {
-    const id = (options && options.id) || '';
-    this.setData({ taskId: id });
     this.pollTimer = null;
-
+    this.wasLive = null;
+    this.setData({ taskId: (options && options.id) || '' });
     ensureLogin().then((ok) => {
-      if (!ok) return;
-      this.fetchDetail(true);
+      if (ok) this.fetchDetail(true);
     });
+  },
+
+  onShow() {
+    // 从后台切回来时继续轮询
+    if (this.data.task && this.data.live) this.startPoll();
   },
 
   onHide() {
@@ -67,14 +95,14 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.fetchDetail(true).then(() => wx.stopPullDownRefresh());
+    this.fetchDetail(false).then(() => wx.stopPullDownRefresh());
   },
 
   /* ---------------- 数据 ---------------- */
 
   fetchDetail(showLoading) {
     if (!this.data.taskId) {
-      this.setData({ loading: false, loadError: '缺少任务 ID' });
+      this.setData({ loading: false, loadError: '链接里缺少任务编号，请从任务列表进入' });
       return Promise.resolve();
     }
     if (showLoading) this.setData({ loading: true, loadError: '' });
@@ -83,10 +111,9 @@ Page({
       .getTask(this.data.taskId)
       .then((res) => this.applyTask(res))
       .catch((err) => {
-        this.setData({
-          loading: false,
-          loadError: (err && err.message) || '加载失败'
-        });
+        // 轮询中的偶发失败不清空页面
+        if (!showLoading && this.data.task) return;
+        this.setData({ loading: false, loadError: (err && err.message) || '任务详情没有加载出来' });
       })
       .then(() => this.syncPoll());
   },
@@ -94,13 +121,18 @@ Page({
   applyTask(res) {
     const meta = describeStatus(res.status);
     const summary = res.summary || {};
-    const counts = captureSummary(summary);
+    const live = isLive(res.status);
+
+    // 页面开着时任务刚好结束 → 落章 + 轻震，这是全页唯一一次主动动效
+    const justFinished = this.wasLive === true && !live;
+    this.wasLive = live;
 
     const files = (res.files || []).map((f) => {
       const ext = String(f.name || '').split('.').pop().toLowerCase();
       return Object.assign({}, f, {
-        ext: ext,
+        ext,
         extLabel: ext.toUpperCase(),
+        kind: ext === 'docx' || ext === 'doc' ? 'doc' : 'pack',
         sizeText: formatSize(f.size),
         previewable: PREVIEWABLE.indexOf(ext) !== -1
       });
@@ -108,35 +140,35 @@ Page({
 
     this.setData({
       task: res,
+      live,
       steps: buildSteps(res),
-      progress: progressOf(res),
-      statusLabel: meta.label,
-      statusTone: meta.tone,
-      statusHint: meta.hint,
       stepText: describeStep(res.current_step),
+      stepNo: Math.min(4, currentStepIndex(res.current_step) + 1),
+      progress: progressOf(res),
+      statusHint: meta.hint,
 
-      createdFull: formatFull(res.created_at),
+      seal: sealOf(res.status),
+      sealDate: formatDateDot(res.finished_at),
+      stampNow: justFinished,
+      coverage: coverageOf(summary),
+      quality: captureSummary(summary).quality,
+
       createdText: fromNow(res.created_at),
+      createdFull: formatFull(res.created_at),
       finishedText: res.finished_at ? formatFull(res.finished_at) : '',
       durationText: res.started_at ? durationText(res.started_at, res.finished_at) : '',
 
       errorList: describeError(res.error_message),
-      capture: counts.capture,
-      quality: counts.quality,
-      // 结案结论：后端每次任务收尾时生成（大模型不可用则降级模板），可能为空
-      conclusion: String((summary && summary.conclusion) || '').trim(),
-      files: files,
+      conclusion: String(summary.conclusion || '').trim(),
+      files,
       logTail: res.log_tail || '',
-      live: isLive(res.status),
-
-      actions: {
-        resume: canResume(res.status),
-        cancel: canCancel(res.status)
-      },
+      bar: barOf(res, files),
 
       loading: false,
       loadError: ''
     });
+
+    if (justFinished && wx.vibrateShort) wx.vibrateShort({ type: 'medium' });
   },
 
   /* ---------------- 轮询 ---------------- */
@@ -148,9 +180,7 @@ Page({
 
   startPoll() {
     if (this.pollTimer) return;
-    this.pollTimer = setInterval(() => {
-      this.fetchDetail(false);
-    }, config.pollInterval);
+    this.pollTimer = setInterval(() => this.fetchDetail(false), config.pollInterval);
   },
 
   stopPoll() {
@@ -164,35 +194,47 @@ Page({
 
   onResume() {
     if (this.data.busy) return;
-    this.setData({ busy: true });
-    taskApi
-      .resumeTask(this.data.taskId)
-      .then((res) => {
-        wx.showToast({
-          title: res && res.resumed === false ? '当前状态无需重试' : '已重新排队',
-          icon: 'none'
-        });
-        this.fetchDetail(false);
-      })
-      .catch(() => {})
-      .then(() => this.setData({ busy: false }));
+    const partial = this.data.task && this.data.task.status === 'partial_completed';
+    wx.showModal({
+      title: partial ? '补齐图片' : '重跑任务',
+      content: partial
+        ? '只重新截取缺图的条目，已有的截图保留。完成后会生成新的 Word。'
+        : '任务会重新排队，从没完成的条目继续。',
+      confirmText: partial ? '开始补图' : '重跑',
+      confirmColor: '#1d5c4e',
+      success: (r) => {
+        if (!r.confirm) return;
+        this.setData({ busy: true });
+        taskApi
+          .resumeTask(this.data.taskId)
+          .then((res) => {
+            const resumed = !(res && res.resumed === false);
+            wx.showToast({ title: resumed ? '已重新排队' : '当前状态不需要重跑', icon: 'none' });
+            this.wasLive = null; // 新一轮开始，结束时再落一次章
+            return this.fetchDetail(false);
+          })
+          .catch(() => {})
+          .then(() => this.setData({ busy: false }));
+      }
+    });
   },
 
   onCancel() {
     if (this.data.busy) return;
     wx.showModal({
       title: '取消任务',
-      content: '任务会立即停止，已生成的中间产物会保留。确定取消吗？',
-      confirmText: '确定取消',
-      confirmColor: '#9a2f2f',
+      content: '任务会立即停止，已经生成的部分会保留。',
+      confirmText: '取消任务',
+      cancelText: '继续运行',
+      confirmColor: '#a83a30',
       success: (r) => {
         if (!r.confirm) return;
         this.setData({ busy: true });
         taskApi
           .cancelTask(this.data.taskId)
           .then(() => {
-            wx.showToast({ title: '已取消', icon: 'none' });
-            this.fetchDetail(false);
+            wx.showToast({ title: '任务已取消', icon: 'none' });
+            return this.fetchDetail(false);
           })
           .catch(() => {})
           .then(() => this.setData({ busy: false }));
@@ -202,10 +244,16 @@ Page({
 
   /* ---------------- 文件 ---------------- */
 
-  onDownload(e) {
-    const name = e.currentTarget.dataset.name;
-    wx.showLoading({ title: '下载中', mask: true });
+  onOpenPrimary() {
+    if (this.data.bar.openName) this.openFile(this.data.bar.openName);
+  },
 
+  onDownload(e) {
+    this.openFile(e.currentTarget.dataset.name);
+  },
+
+  openFile(name) {
+    wx.showLoading({ title: '正在取文件', mask: true });
     taskApi
       .downloadFile(this.data.taskId, name)
       .then((res) => {
@@ -217,51 +265,44 @@ Page({
           this.shareFile(res.tempFilePath, name);
         }
       })
-      .catch(() => {
-        wx.hideLoading();
-      });
+      .catch(() => wx.hideLoading());
   },
 
-  /** docx / pdf 等走系统预览，预览页自带「用其他应用打开」入口 */
+  /** docx / pdf 走系统预览，预览页右上角自带「转发 / 用其他应用打开」 */
   openDocument(filePath, ext, name) {
     wx.openDocument({
-      filePath: filePath,
+      filePath,
       fileType: ext,
       showMenu: true,
-      success: () => {},
-      fail: () => {
-        // 预览失败（缺少办公类 App）时退化为「发送到聊天」
-        this.shareFile(filePath, name);
-      }
+      fail: () => this.shareFile(filePath, name)
     });
   },
 
-  /** zip 等无法预览的文件：转发到聊天，用户可在微信内保存 */
+  /** zip 等不能预览的文件：转发到聊天，在电脑上打开 */
   shareFile(filePath, name) {
     if (!wx.shareFileMessage) {
       wx.showModal({
-        title: '文件已下载',
-        content: '当前微信版本不支持转发文件。文件名：' + name,
+        title: '无法转发',
+        content: '当前微信版本不支持转发文件，请升级微信后重试。',
         showCancel: false
       });
       return;
     }
     wx.shareFileMessage({
-      filePath: filePath,
+      filePath,
       fileName: safeFileName(name),
       fail: (err) => {
-        const msg = (err && err.errMsg) || '';
-        if (msg.indexOf('cancel') !== -1) return;
-        wx.showModal({
-          title: '文件已下载',
-          content: '转发未完成。可在微信中重新打开小程序再试。',
-          showCancel: false
-        });
+        if (String((err && err.errMsg) || '').indexOf('cancel') !== -1) return;
+        wx.showToast({ title: '转发没有完成，请重试', icon: 'none' });
       }
     });
   },
 
   /* ---------------- 其它 ---------------- */
+
+  toggleSteps() {
+    this.setData({ stepsOpen: !this.data.stepsOpen });
+  },
 
   toggleLog() {
     this.setData({ logOpen: !this.data.logOpen });
@@ -269,17 +310,11 @@ Page({
 
   onCopyLog() {
     if (!this.data.logTail) return;
-    wx.setClipboardData({
-      data: this.data.logTail,
-      success: () => wx.showToast({ title: '日志已复制', icon: 'none' })
-    });
+    wx.setClipboardData({ data: this.data.logTail });
   },
 
   onCopyId() {
-    wx.setClipboardData({
-      data: this.data.taskId,
-      success: () => wx.showToast({ title: '任务 ID 已复制', icon: 'none' })
-    });
+    wx.setClipboardData({ data: this.data.taskId });
   },
 
   onBackToTasks() {

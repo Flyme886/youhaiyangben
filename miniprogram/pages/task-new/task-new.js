@@ -2,9 +2,47 @@ const taskApi = require('../../services/task');
 const { ensureLogin } = require('../../utils/auth');
 const { formatSize } = require('../../utils/util');
 
-/** 与后端 app/main.py 的校验保持一致 */
+/** 与后端 app/api_wx.py 的校验保持一致 */
 const LOCK_PREFIX = '~$';
 const ALLOWED = /\.xlsx$/i;
+
+/**
+ * 体积上限。监测表通常几十 KB 到几 MB；超过 10MB 基本是误选了带大量图片的表，
+ * 前端先拦下，免得用户在弱网下等很久才看到失败。
+ */
+const MAX_BYTES = 10 * 1024 * 1024;
+
+const FLOW = [
+  '核对表头，按链接去掉重复条目',
+  '逐条打开链接，截下整页',
+  '剔除空白页和平台验证页',
+  '每 50 条装订成一册 Word'
+];
+
+/**
+ * 部分安卓机型上 chooseMessageFile 返回的临时路径可能已失效，
+ * 上传前先确认文件真的读得到，失败时让用户重新选，而不是传到一半报错。
+ */
+function verifyTempFile(path) {
+  return new Promise((resolve) => {
+    let fs = null;
+    try {
+      fs = wx.getFileSystemManager();
+    } catch (e) {
+      resolve(true);
+      return;
+    }
+    if (!fs || typeof fs.getFileInfo !== 'function') {
+      resolve(true);
+      return;
+    }
+    fs.getFileInfo({
+      filePath: path,
+      success: (res) => resolve(!!(res && res.size > 0)),
+      fail: () => resolve(false)
+    });
+  });
+}
 
 Page({
   data: {
@@ -12,10 +50,11 @@ Page({
     name: '',
     note: '',
     uploading: false,
+    checking: false,
     progress: 0,
     error: '',
-    /** 低频流程说明默认收起，保持上传主路径简洁 */
-    stepsOpen: false
+    stepsOpen: false,
+    flow: FLOW
   },
 
   onLoad() {
@@ -23,7 +62,7 @@ Page({
   },
 
   onShow() {
-    // 从结果页返回后给一个干净的表单
+    // 提交成功后再回到这个 tab，给一张干净的表单
     if (this.needReset) {
       this.needReset = false;
       this.setData({ file: null, name: '', note: '', progress: 0, error: '' });
@@ -32,10 +71,7 @@ Page({
 
   /* ---------------- 选文件 ---------------- */
 
-  /**
-   * 小程序没有「浏览本机文件」的通用接口，只能从聊天记录里取文件。
-   * 交互上必须提前告诉用户，否则会卡在这一步。
-   */
+  /** 小程序没有「浏览本机文件」的通用接口，只能从聊天记录里取文件 */
   onChooseFile() {
     if (this.data.uploading) return;
     wx.chooseMessageFile({
@@ -44,13 +80,11 @@ Page({
       extension: ['xlsx'],
       success: (res) => {
         const picked = (res.tempFiles || [])[0];
-        if (!picked) return;
-        this.acceptFile(picked);
+        if (picked) this.acceptFile(picked);
       },
       fail: (err) => {
-        const msg = (err && err.errMsg) || '';
-        if (msg.indexOf('cancel') !== -1) return;
-        this.setData({ error: '选择文件失败，请重试' });
+        if (String((err && err.errMsg) || '').indexOf('cancel') !== -1) return;
+        this.setData({ error: '没能打开聊天记录，请再试一次' });
       }
     });
   },
@@ -58,42 +92,32 @@ Page({
   acceptFile(picked) {
     const filename = picked.name || '';
     if (!filename) {
-      this.setData({ error: '无法读取文件名，请重新选择' });
+      this.setData({ error: '读不到文件名，请重新选择' });
       return;
     }
     if (filename.indexOf(LOCK_PREFIX) === 0) {
-      this.setData({ error: '这是 Excel 打开时产生的临时锁文件，请选择正式文件' });
+      this.setData({ error: '这是 Excel 打开时产生的临时文件，请选择正式的表格' });
       return;
     }
     if (!ALLOWED.test(filename)) {
-      this.setData({ error: '只支持 .xlsx；如果是 .xls，请先用 Excel 另存为 .xlsx' });
+      this.setData({ error: '只支持 .xlsx。如果是 .xls，请先在 Excel 里另存为 .xlsx' });
       return;
     }
+    if (picked.size > MAX_BYTES) {
+      this.setData({
+        error: '这个文件有 ' + formatSize(picked.size) + '，超过 10 MB 上限。请删掉表里的图片或拆成几份再传'
+      });
+      return;
+    }
+
+    // 换文件时，如果任务名还是上一个文件名，就跟着换
+    const prevAuto = this.data.file ? this.data.file.name.replace(ALLOWED, '') : '';
+    const keepName = this.data.name && this.data.name !== prevAuto;
+
     this.setData({
-      file: {
-        name: filename,
-        path: picked.path,
-        sizeText: formatSize(picked.size)
-      },
-      // 任务名默认取文件名（去扩展名），用户可改
-      name: this.data.name || filename.replace(/\.xlsx$/i, ''),
+      file: { name: filename, path: picked.path, size: picked.size, sizeText: formatSize(picked.size) },
+      name: keepName ? this.data.name : filename.replace(ALLOWED, ''),
       error: ''
-    });
-  },
-
-  onRemoveFile() {
-    if (this.data.uploading) return;
-    this.setData({ file: null, name: '', progress: 0, error: '' });
-  },
-
-  onPreviewFile() {
-    if (!this.data.file) return;
-    // xlsx 不能被 openDocument 直接渲染，给个明确提示而不是报错
-    wx.showModal({
-      title: '文件已就绪',
-      content: this.data.file.name + '\n' + this.data.file.sizeText + '\n\n小程序内无法预览 Excel，上传后可在服务端处理。',
-      showCancel: false,
-      confirmText: '知道了'
     });
   },
 
@@ -114,24 +138,37 @@ Page({
   /* ---------------- 提交 ---------------- */
 
   onSubmit() {
-    if (this.data.uploading) return;
+    if (this.data.uploading || this.data.checking) return;
     if (!this.data.file) {
-      this.setData({ error: '请先选择一份 .xlsx 文件' });
+      this.setData({ error: '先选一份 .xlsx' });
       return;
     }
 
-    this.setData({ uploading: true, progress: 0, error: '' });
+    this.setData({ checking: true, error: '' });
+    verifyTempFile(this.data.file.path).then((ok) => {
+      this.setData({ checking: false });
+      if (!ok) {
+        this.setData({
+          file: null,
+          error: '微信给的临时文件已经失效，请重新从聊天记录选一次'
+        });
+        return;
+      }
+      this.startUpload();
+    });
+  },
+
+  startUpload() {
+    this.setData({ uploading: true, progress: 0 });
 
     const pending = taskApi.createTask({
       filePath: this.data.file.path,
       name: (this.data.name || '').trim(),
       note: (this.data.note || '').trim(),
       onProgress: (v) => {
-        // 只在实际变化时 setData，避免高频渲染
         if (v !== this.data.progress) this.setData({ progress: v });
       }
     });
-
     this.pendingUpload = pending;
 
     pending
@@ -139,10 +176,10 @@ Page({
         this.pendingUpload = null;
         this.needReset = true;
         this.setData({ uploading: false, progress: 100 });
-        wx.showToast({ title: '已提交', icon: 'success', duration: 1200 });
+        wx.showToast({ title: '任务已提交', icon: 'success', duration: 900 });
         setTimeout(() => {
           wx.navigateTo({ url: '/pages/task-detail/task-detail?id=' + res.task_id });
-        }, 700);
+        }, 600);
       })
       .catch((err) => {
         this.pendingUpload = null;
@@ -150,7 +187,7 @@ Page({
         this.setData({
           uploading: false,
           progress: 0,
-          error: aborted ? '' : (err && err.message) || '提交失败，请重试'
+          error: aborted ? '' : (err && err.message) || '上传没有成功，请重试'
         });
       });
   },

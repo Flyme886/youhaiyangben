@@ -1,99 +1,79 @@
-.empty {
+.es {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 88rpx 40rpx 72rpx;
+  padding: 72rpx 48rpx 64rpx;
 }
 
-/* 轻量文档插图，不使用厚重色块 */
-.art {
+/* 档案夹：后片 + 一张纸 + 前片，前片略斜，像刚被翻开 */
+.es-folder {
   position: relative;
-  width: 160rpx;
-  height: 180rpx;
-  margin-bottom: 32rpx;
+  width: 200rpx;
+  height: 150rpx;
+  margin-bottom: 40rpx;
 }
 
-.sheet {
+.es-tab {
   position: absolute;
-  top: 12rpx;
-  left: 20rpx;
-  width: 124rpx;
-  height: 160rpx;
-  border: 2rpx solid #e5e5ea;
-  border-radius: 16rpx;
-  background: #ffffff;
-}
-
-.sheet-back {
   top: 0;
-  left: 6rpx;
-  width: 120rpx;
-  height: 152rpx;
-  background: #f5f5f7;
-  transform: rotate(-6deg);
-  z-index: 0;
-}
-
-.sheet:not(.sheet-back) {
-  z-index: 1;
-}
-
-.line {
-  height: 8rpx;
-  margin-left: 20rpx;
-  border-radius: 4rpx;
-  background: #e5e5ea;
-}
-
-.line-1 {
-  width: 80rpx;
-  margin-top: 40rpx;
-}
-
-.line-2 {
-  width: 62rpx;
-  margin-top: 18rpx;
-}
-
-.line-3 {
+  left: 18rpx;
   width: 72rpx;
-  margin-top: 18rpx;
+  height: 24rpx;
+  border-radius: 10rpx 10rpx 0 0;
+  background: #c9d0cc;
 }
 
-.art-plain .sheet {
-  border-color: #eeeef2;
+.es-back {
+  position: absolute;
+  top: 18rpx;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12rpx;
+  background: #c9d0cc;
 }
 
-.empty-text {
-  color: #1c1c1e;
-  font-size: 30rpx;
-  font-weight: 600;
+.es-paper {
+  position: absolute;
+  top: 34rpx;
+  left: 22rpx;
+  right: 22rpx;
+  height: 90rpx;
+  border-radius: 6rpx;
+  background: #ffffff;
+  border: 1rpx solid #dde2df;
+}
+
+.es-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 92rpx;
+  border-radius: 10rpx 10rpx 12rpx 12rpx;
+  background: #dde2df;
+  transform: perspective(300rpx) rotateX(14deg);
+  transform-origin: bottom center;
+}
+
+.es-text {
+  font-family: 'Songti SC', 'STSong', serif;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #18221e;
   text-align: center;
 }
 
-.empty-hint {
-  max-width: 520rpx;
+.es-hint {
+  max-width: 540rpx;
   margin-top: 14rpx;
-  color: #6e6e73;
-  font-size: 24rpx;
-  line-height: 1.65;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: #7a847f;
   text-align: center;
 }
 
-.empty-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 88rpx;
+.es-btn {
   margin-top: 36rpx;
-  padding: 0 48rpx;
-  border-radius: 18rpx;
-  background: #1d6f5f;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.empty-btn-hover {
-  opacity: 0.75;
+  padding: 0 44rpx;
 }

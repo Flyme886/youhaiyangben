@@ -1,36 +1,47 @@
-<view class="page-wrap">
-  <view class="page-heading">
-    <text class="page-title">我的</text>
-    <text class="page-subtitle">账号、任务数据与使用帮助</text>
+<view class="page">
+  <view class="masthead">
+    <text class="masthead-title">我的</text>
   </view>
 
-  <!-- 账号 -->
-  <view class="card account">
-    <view class="avatar">样</view>
-    <view class="flex-1 account-info">
-      <text class="account-title">业务账号</text>
-      <text class="tiny muted mono">{{openidMasked}}</text>
-    </view>
-    <view class="health health-{{health === null ? 'pending' : (health ? 'ok' : 'bad')}}">
-      <view class="health-dot"></view>
-      <text class="tiny">{{healthText}}</text>
-    </view>
-  </view>
-
-  <!-- 我的数据 -->
-  <view class="card">
-    <text class="card-title">我的任务</text>
-    <view class="stat-grid">
-      <view wx:for="{{statCards}}" wx:key="label" class="stat-cell">
-        <text class="stat-value">{{item.value}}</text>
-        <text class="tiny muted">{{item.label}}</text>
+  <!-- 账号与服务状态 -->
+  <view class="sheet account">
+    <view class="row">
+      <view class="avatar" aria-hidden="true"><text>样</text></view>
+      <view class="grow">
+        <text class="account-name">{{isAdmin ? '管理员' : '业务账号'}}</text>
+        <text class="account-id">{{openidMasked}}</text>
       </view>
+    </view>
+    <view class="row health health-{{health === null ? 'pending' : (health ? 'ok' : 'bad')}}" bindtap="checkHealth">
+      <view class="health-dot"></view>
+      <text class="grow">{{healthText}}</text>
+      <text class="health-retry">{{health === false ? '重新检测' : ''}}</text>
+    </view>
+  </view>
+
+  <!-- 我的任务：点数字直接跳到对应筛选 -->
+  <view class="section-head">
+    <text class="section-title">我的任务</text>
+  </view>
+  <view class="sheet stats">
+    <view
+      wx:for="{{statCards}}"
+      wx:key="key"
+      class="stat"
+      hover-class="stat-press"
+      bindtap="onStatTap"
+      data-key="{{item.key}}"
+    >
+      <text class="stat-value {{item.key === 'issue' && item.value > 0 ? 'stat-bad' : ''}}">{{item.value}}</text>
+      <text class="stat-label">{{item.label}}</text>
     </view>
   </view>
 
   <!-- 常见问题 -->
-  <view class="card">
-    <text class="card-title">常见问题</text>
+  <view class="section-head">
+    <text class="section-title">常见问题</text>
+  </view>
+  <view class="sheet faq">
     <view
       wx:for="{{faq}}"
       wx:key="q"
@@ -38,44 +49,44 @@
       bindtap="onFaqTap"
       data-index="{{index}}"
     >
-      <view class="faq-head">
-        <text class="faq-q">{{item.q}}</text>
-        <text class="faq-sign">{{faqOpenIndex === index ? '−' : '+'}}</text>
+      <view class="row faq-q">
+        <text class="grow">{{item.q}}</text>
+        <view class="faq-chevron" aria-hidden="true"></view>
       </view>
       <text wx:if="{{faqOpenIndex === index}}" class="faq-a">{{item.a}}</text>
     </view>
   </view>
 
-  <!-- 环境信息 -->
-  <view class="card environment-card">
-    <view class="flex-between" bindtap="toggleDetails">
-      <text class="card-title">环境信息</text>
-      <text class="tiny muted">{{detailsOpen ? '收起' : '展开'}}</text>
+  <!-- 环境信息：排查问题时才看 -->
+  <view class="sheet env">
+    <view class="row env-head" bindtap="toggleDetails">
+      <text class="grow env-title">环境信息</text>
+      <text class="env-sign">{{detailsOpen ? '收起' : '展开'}}</text>
     </view>
-
-    <view wx:if="{{detailsOpen}}" class="details">
-      <view class="detail-row">
-        <text class="tiny muted">运行环境</text>
-        <text class="tiny">{{envLabel}}</text>
+    <view wx:if="{{detailsOpen}}" class="env-body">
+      <view class="row kv">
+        <text class="grow">运行环境</text>
+        <text>{{envLabel}}</text>
       </view>
-      <view class="detail-row" bindtap="onCopyBaseUrl">
-        <text class="tiny muted">服务地址</text>
-        <text class="tiny ellipsis detail-value">{{baseUrl}}</text>
+      <view class="row kv">
+        <text class="grow">运行版本</text>
+        <text>{{envVersion}}</text>
       </view>
-      <view class="detail-row">
-        <text class="tiny muted">服务时间</text>
-        <text class="tiny">{{serverTime || '—'}}</text>
+      <view class="row kv" bindtap="onCopyBaseUrl">
+        <text class="kv-key">服务地址</text>
+        <text class="grow kv-link ellipsis">{{baseUrl}}</text>
       </view>
-      <view class="detail-row">
-        <text class="tiny muted">客户端版本</text>
-        <text class="tiny">{{version}}</text>
+      <view class="row kv">
+        <text class="grow">服务器时间</text>
+        <text>{{serverTime || '未取到'}}</text>
+      </view>
+      <view class="row kv">
+        <text class="grow">客户端版本</text>
+        <text>{{version}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 退出 -->
-  <view class="btn btn-danger logout" bindtap="onLogout">退出登录</view>
-
-  <text class="tiny muted footer">样本任务台 · 内部工具</text>
-  <view class="safe-bottom"></view>
+  <view class="btn btn-danger logout" hover-class="btn-press" bindtap="onLogout">退出登录</view>
+  <text class="footer">样本任务台，内部工具</text>
 </view>

@@ -1,72 +1,57 @@
-<view class="login-page">
+<view class="login">
   <view class="brand">
-    <view class="brand-mark">
-      <view class="bar bar-a"></view>
-      <view class="bar bar-b"></view>
-      <view class="bar bar-c"></view>
-    </view>
+    <seal text="样本任务" tone="seal" size="lg" />
     <text class="brand-title">样本任务台</text>
-    <text class="brand-sub">提交文件、查看处理进度、下载结果</text>
-  </view>
-
-  <!-- 服务端连通性：把「网络不通」和「登录失败」分开，避免用户误判 -->
-  <view class="probe probe-{{serverOk === null ? 'pending' : (serverOk ? 'ok' : 'bad')}}">
-    <view class="probe-dot"></view>
-    <text class="probe-text">{{serverMsg}}</text>
-    <text wx:if="{{serverOk === false}}" class="probe-retry" bindtap="onRetryProbe">重试</text>
-  </view>
-
-  <!-- 失败时把具体原因摊开：域名未加白名单 / 超时 / 证书问题各不相同 -->
-  <view wx:if="{{serverDetail}}" class="error-box probe-detail">
-    <text class="error-text">{{serverDetail}}</text>
+    <text class="brand-sub">交一份表格，取回一册带截图的证据</text>
   </view>
 
   <view class="panel">
-    <button
-      class="btn btn-primary login-main"
-      loading="{{loading}}"
-      disabled="{{loading}}"
-      bindtap="onWechatLogin"
-    >
-      微信一键登录
-    </button>
-
-    <view class="or">
-      <view class="or-line"></view>
-      <text class="or-text">或使用访问密码</text>
-      <view class="or-line"></view>
+    <!-- 先告诉用户服务器连不连得上，别让网络问题看起来像登录失败 -->
+    <view class="row probe probe-{{serverOk === null ? 'pending' : (serverOk ? 'ok' : 'bad')}}">
+      <view class="probe-dot"></view>
+      <text class="grow">{{serverMsg}}</text>
+      <text wx:if="{{serverOk === false}}" class="probe-retry" bindtap="onRetryProbe">重新检测</text>
+    </view>
+    <view wx:if="{{serverDetail}}" class="notice notice-bad probe-detail">
+      <text>{{serverDetail}}</text>
     </view>
 
-    <view class="field">
+    <button
+      class="btn btn-primary login-main"
+      hover-class="btn-press"
+      loading="{{loading && mode === 'wechat'}}"
+      disabled="{{loading}}"
+      bindtap="onWechatLogin"
+    >微信一键登录</button>
+
+    <view wx:if="{{!passwordOpen}}" class="alt" bindtap="onOpenPassword">用访问密码登录</view>
+
+    <view wx:else class="pwd">
       <input
         class="field-input"
-        type="text"
         password="{{true}}"
         value="{{password}}"
-        placeholder="请输入后台访问密码"
+        placeholder="后台访问密码"
+        placeholder-class="placeholder"
         confirm-type="done"
+        focus="{{passwordOpen}}"
         bindinput="onPasswordInput"
         bindconfirm="onPasswordLogin"
       />
+      <button
+        class="btn btn-quiet pwd-btn"
+        hover-class="btn-press"
+        loading="{{loading && mode === 'password'}}"
+        disabled="{{loading}}"
+        bindtap="onPasswordLogin"
+      >用密码登录</button>
     </view>
 
-    <button
-      class="btn btn-ghost"
-      loading="{{loading}}"
-      disabled="{{loading}}"
-      bindtap="onPasswordLogin"
-    >
-      密码登录
-    </button>
-
-    <view wx:if="{{error}}" class="error-box">
-      <text class="error-text">{{error}}</text>
-    </view>
+    <view wx:if="{{error}}" class="notice notice-bad login-error">{{error}}</view>
   </view>
 
   <view class="footer">
-    <text class="tiny muted">当前环境：{{envLabel}}</text>
-    <text class="tiny muted">运行版本：{{envVersion}}</text>
-    <text class="tiny muted ellipsis">服务地址：{{baseUrl}}</text>
+    <text>{{envLabel}}，{{envVersion}}</text>
+    <text class="ellipsis">{{baseUrl}}</text>
   </view>
 </view>

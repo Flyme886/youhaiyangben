@@ -1,0 +1,10 @@
+<view
+  class="seal seal-{{tone}} seal-{{size}} {{stamp ? 'seal-stamp' : ''}}"
+  aria-role="img"
+  aria-label="{{text}}"
+>
+  <view class="seal-inner">
+    <text wx:for="{{chars}}" wx:key="*this" class="seal-line {{chars.length > 1 ? 'seal-line-2' : ''}}">{{item}}</text>
+  </view>
+  <text wx:if="{{sub}}" class="seal-sub">{{sub}}</text>
+</view>

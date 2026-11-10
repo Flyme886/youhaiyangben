@@ -1,36 +1,48 @@
 /**
- * 全局视觉规范：纯白底、iPhone 式层级、墨绿品牌强调
- * 设计稿基准宽度 750rpx，所有尺寸使用 rpx
+ * 舆见 · 样本任务台 —— 全局视觉规范
+ *
+ * 隐喻：证据册 / 卷宗。纸面是冷灰绿的档案纸，正文是墨，主色墨绿；
+ * 朱砂只留给「交付印章」这一处，别处一律不用，保证它出现时有分量。
+ *
+ * 基准宽度 750rpx，所有尺寸用 rpx。
  */
 page {
-  --paper: #ffffff;
-  --panel: #ffffff;
-  --ink: #1c1c1e;
-  --muted: #6e6e73;
-  --subtle: #8e8e93;
-  --line: #e5e5ea;
-  --fill: #f5f5f7;
-  --fill-strong: #ececf0;
-  --accent: #1d6f5f;
-  --accent-strong: #125145;
-  --accent-soft: #edf6f3;
-  --warn: #9a5b13;
-  --warn-soft: #fff7e8;
-  --bad: #c43c3c;
-  --bad-soft: #fff1f1;
-  --ok: #248a3d;
+  /* 纸与墨 */
+  --paper: #f1f3f1;
+  --sheet: #ffffff;
+  --ink: #18221e;
+  --ink-2: #4a5550;
+  --muted: #7a847f;
+  --rule: #dde2df;
+  --rule-strong: #c9d0cc;
+  --well: #e8ece9;
 
-  --radius: 18rpx;
-  --radius-lg: 24rpx;
-  --gap: 24rpx;
+  /* 墨绿：品牌与主操作 */
+  --accent: #1d5c4e;
+  --accent-press: #154538;
+  --accent-wash: #e3eee9;
+
+  /* 语义色 */
+  --ok: #2c7a4b;
+  --ok-wash: #e4f1e8;
+  --warn: #9a5f12;
+  --warn-wash: #f6ecdc;
+  --bad: #a83a30;
+  --bad-wash: #f6e4e1;
+
+  /* 朱砂：仅用于印章 */
+  --seal: #b0362b;
+
+  --serif: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif;
+  --sans: -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei', sans-serif;
 
   background-color: var(--paper);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue',
-    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--sans);
   font-size: 28rpx;
-  line-height: 1.5;
-  box-sizing: border-box;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
 
 view,
@@ -43,32 +55,74 @@ scroll-view {
   box-sizing: border-box;
 }
 
-/* ---------- 布局 ---------- */
-.page-wrap {
+button::after {
+  border: none;
+}
+
+/* ---------- 版面 ---------- */
+
+.page {
   min-height: 100vh;
-  padding: 24rpx 32rpx 48rpx;
-  background: var(--paper);
+  padding: 8rpx 32rpx 64rpx;
 }
 
-.page-heading {
-  padding: 20rpx 0 36rpx;
+/* 底部有固定操作栏的页面，给内容留出空间 */
+.page-with-bar {
+  padding-bottom: calc(196rpx + env(safe-area-inset-bottom));
 }
 
-.page-title {
+.masthead {
+  padding: 28rpx 0 32rpx;
+}
+
+.masthead-title {
   display: block;
-  color: var(--ink);
-  font-size: 48rpx;
+  font-family: var(--serif);
+  font-size: 56rpx;
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -1rpx;
+  line-height: 1.15;
+  letter-spacing: 2rpx;
+  color: var(--ink);
 }
 
-.page-subtitle {
+.masthead-sub {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 12rpx;
+  font-size: 26rpx;
   color: var(--muted);
-  font-size: 25rpx;
-  line-height: 1.5;
+}
+
+/* 纸页：内容的承载面。圆角克制，用一条细描边而不是阴影 */
+.sheet {
+  background: var(--sheet);
+  border: 1rpx solid var(--rule);
+  border-radius: 20rpx;
+  padding: 32rpx;
+}
+
+.sheet + .sheet,
+.sheet + .section,
+.section + .sheet,
+.section + .section {
+  margin-top: 24rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 40rpx 4rpx 16rpx;
+}
+
+.section-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.section-aside {
+  font-size: 24rpx;
+  color: var(--muted);
 }
 
 .row {
@@ -76,70 +130,9 @@ scroll-view {
   align-items: center;
 }
 
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.flex-1 {
+.grow {
   flex: 1;
   min-width: 0;
-}
-
-.safe-bottom {
-  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-}
-
-/* ---------- 内容分区：默认不使用浮层卡片 ---------- */
-.card {
-  padding: 32rpx 0;
-  margin: 0;
-  background: var(--panel);
-  border-bottom: 1rpx solid var(--line);
-}
-
-.card-tight {
-  padding: 24rpx 0;
-}
-
-.card-title {
-  display: block;
-  color: var(--ink);
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-bottom: 6rpx;
-}
-
-.card-sub {
-  display: block;
-  color: var(--muted);
-  font-size: 24rpx;
-  line-height: 1.5;
-}
-
-/* ---------- 文本 ---------- */
-.muted {
-  color: var(--muted);
-}
-
-.small {
-  font-size: 24rpx;
-}
-
-.tiny {
-  font-size: 22rpx;
-}
-
-.strong {
-  font-weight: 600;
-}
-
-.mono {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
 }
 
 .ellipsis {
@@ -148,22 +141,37 @@ scroll-view {
   text-overflow: ellipsis;
 }
 
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 24rpx;
+}
+
 /* ---------- 按钮 ---------- */
+
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 96rpx;
-  padding: 0 32rpx;
+  margin: 0;
+  padding: 0 36rpx;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: 16rpx;
   font-size: 30rpx;
   font-weight: 600;
   line-height: 1;
+  background: var(--well);
+  color: var(--ink);
 }
 
-.btn::after {
-  border: none;
+/* 原生 <button> 在 style v2 下有固定宽度和外边距，这里统一抹掉 */
+button.btn {
+  width: auto;
+  min-width: 0;
+  margin: 0;
 }
 
 .btn-primary {
@@ -171,116 +179,167 @@ scroll-view {
   color: #ffffff;
 }
 
-.btn-primary[disabled] {
-  background: var(--fill-strong);
-  color: #aeaeb2;
+.btn-primary.btn-press {
+  background: var(--accent-press);
 }
 
-.btn-ghost {
-  background: var(--accent-soft);
+.btn-primary[disabled] {
+  background: var(--rule-strong) !important;
+  color: #ffffff !important;
+}
+
+.btn-quiet {
+  background: var(--accent-wash);
   color: var(--accent);
 }
 
-.btn-muted {
-  background: var(--fill);
-  color: var(--muted);
-}
-
 .btn-danger {
-  background: var(--fill);
+  background: transparent;
   color: var(--bad);
+  border: 1rpx solid var(--rule-strong);
 }
 
 .btn-sm {
-  height: 72rpx;
-  padding: 0 26rpx;
+  height: 68rpx;
+  padding: 0 28rpx;
   font-size: 26rpx;
-  border-radius: 16rpx;
+  border-radius: 14rpx;
+}
+
+.btn-press {
+  opacity: 0.72;
+}
+
+/* ---------- 固定底栏 ---------- */
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(241, 243, 241, 0.94);
+  border-top: 1rpx solid var(--rule);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.action-bar .btn {
+  flex: 1;
 }
 
 /* ---------- 表单 ---------- */
-.field {
-  margin-bottom: 30rpx;
+
+.field + .field {
+  margin-top: 28rpx;
 }
 
 .field-label {
-  display: block;
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 12rpx;
-  color: var(--ink);
   font-size: 25rpx;
   font-weight: 500;
+  color: var(--ink-2);
+}
+
+.field-input,
+.field-textarea {
+  width: 100%;
+  padding: 0 24rpx;
+  border: 1rpx solid var(--rule);
+  border-radius: 14rpx;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 29rpx;
 }
 
 .field-input {
-  width: 100%;
-  height: 96rpx;
-  padding: 0 24rpx;
-  border: 1rpx solid transparent;
-  border-radius: 16rpx;
-  background: var(--fill);
-  color: var(--ink);
-  font-size: 28rpx;
-  line-height: 96rpx;
-  box-sizing: border-box;
+  height: 92rpx;
 }
 
 .field-textarea {
-  width: 100%;
-  min-height: 152rpx;
-  padding: 22rpx 24rpx;
-  border: 1rpx solid transparent;
-  border-radius: 16rpx;
-  background: var(--fill);
-  color: var(--ink);
-  font-size: 28rpx;
+  height: 160rpx;
+  padding-top: 22rpx;
+  padding-bottom: 22rpx;
   line-height: 1.6;
-  box-sizing: border-box;
 }
 
-.field-hint {
+.placeholder {
+  color: #a6aea9;
+}
+
+/* ---------- 进度条 ---------- */
+
+.track {
+  position: relative;
+  height: 8rpx;
+  border-radius: 8rpx;
+  background: var(--well);
+  overflow: hidden;
+}
+
+.track-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+
+/* ---------- 提示条 ---------- */
+
+.notice {
+  padding: 22rpx 26rpx;
+  border-radius: 14rpx;
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.notice-bad {
+  background: var(--bad-wash);
+  color: var(--bad);
+}
+
+.notice-warn {
+  background: var(--warn-wash);
+  color: var(--warn);
+}
+
+.notice-detail {
   display: block;
   margin-top: 10rpx;
-  color: var(--subtle);
   font-size: 22rpx;
-  text-align: right;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
-/* ---------- 分割线 ---------- */
-.divider {
-  height: 1rpx;
-  margin: 28rpx 0;
-  background: var(--line);
-}
-
-/* ---------- 通用状态 ---------- */
-.loading-line {
-  padding: 28rpx 0;
-  color: var(--muted);
-  font-size: 24rpx;
-  text-align: center;
-}
-
-.error-text {
-  color: var(--bad);
-  font-weight: 500;
-}
-
-.card-hover {
-  opacity: 0.55;
-}
+/* ---------- 骨架 ---------- */
 
 .skeleton {
   border-radius: 8rpx;
-  background: linear-gradient(90deg, #f0f0f2 25%, #f8f8fa 37%, #f0f0f2 63%);
+  background: linear-gradient(90deg, #e6eae7 25%, #eff2f0 37%, #e6eae7 63%);
   background-size: 400% 100%;
-  animation: skeleton-loading 1.4s ease infinite;
+  animation: skeleton 1.4s ease infinite;
 }
 
-@keyframes skeleton-loading {
+@keyframes skeleton {
   0% {
     background-position: 100% 50%;
   }
   100% {
     background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .track-fill {
+    transition: none;
   }
 }

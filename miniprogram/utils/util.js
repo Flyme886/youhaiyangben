@@ -125,9 +125,16 @@ function envVersionText() {
     return '未取到';
   }
 }
+/** "2026-09-29T12:11:17" → "2026.09.29"（印章日期） */
+function formatDateDot(str) {
+  const d = parseIso(str);
+  if (!d) return '';
+  return d.getFullYear() + '.' + pad(d.getMonth() + 1) + '.' + pad(d.getDate());
+}
 
 module.exports = {
   parseIso,
+  formatDateDot,
   formatShort,
   formatFull,
   fromNow,

@@ -30,7 +30,8 @@ miniprogram/
 │   └── mine/                       我的（登录态、服务连通性）
 ├── components/
 │   ├── status-tag/                 状态标签（按后端 status 映射文案与颜色）
-│   └── empty-state/                空状态（纯 CSS 插图，无二进制资源）
+│   ├── seal/                       交付印章（详情页结果 + 登录页品牌，纯 CSS）
+│   └── empty-state/                空状态（纯 CSS 档案夹插图，无二进制资源）
 ├── services/task.js                业务接口封装
 ├── utils/
 │   ├── request.js                  请求封装：token 注入 / 401 重入保护 / 上传进度与取消 / 下载

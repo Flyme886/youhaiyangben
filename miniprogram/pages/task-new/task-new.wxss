@@ -1,200 +1,210 @@
-.new-task-page {
-  padding-bottom: 184rpx;
-}
+/* ---------- 选文件 ---------- */
 
-.upload-section {
-  padding-top: 0;
-}
-
-/* ---------------- 文件选择 ---------------- */
-.picker {
+.drop {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 26rpx;
-  padding: 52rpx 28rpx;
-  border-radius: 22rpx;
-  background: #f5f5f7;
-  transition: opacity 0.18s ease, background 0.18s ease;
+  padding: 64rpx 40rpx 56rpx;
+  border: 3rpx dashed var(--rule-strong);
+  border-radius: 24rpx;
+  background: var(--sheet);
 }
 
-.picker-hover {
-  background: #ececf0;
+.drop-press {
+  border-color: var(--accent);
+  background: var(--accent-wash);
 }
 
-.picker-plus {
+/* 一张折角的表格纸 */
+.drop-sheet {
   position: relative;
-  width: 72rpx;
-  height: 72rpx;
-  margin-bottom: 22rpx;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.plus-h,
-.plus-v {
-  position: absolute;
-  border-radius: 3rpx;
-  background: #1d6f5f;
-}
-
-.plus-h {
-  left: 20rpx;
-  top: 34rpx;
-  width: 32rpx;
-  height: 4rpx;
-}
-
-.plus-v {
-  left: 34rpx;
-  top: 20rpx;
-  width: 4rpx;
-  height: 32rpx;
-}
-
-.picker-text {
-  color: #1d6f5f;
-  font-size: 29rpx;
-  font-weight: 600;
-}
-
-.picker-hint {
-  max-width: 480rpx;
-  margin-top: 12rpx;
-  color: #6e6e73;
-  font-size: 23rpx;
-  line-height: 1.55;
-  text-align: center;
-}
-
-/* ---------------- 已选文件 ---------------- */
-.file-row {
   display: flex;
-  align-items: center;
-  gap: 20rpx;
-  margin-top: 26rpx;
-  padding: 24rpx;
-  border-radius: 20rpx;
-  background: #edf6f3;
-}
-
-.file-icon {
-  display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  flex-shrink: 0;
-  width: 76rpx;
-  height: 76rpx;
-  border-radius: 16rpx;
-  background: #ffffff;
-  color: #1d6f5f;
-  font-size: 21rpx;
+  width: 120rpx;
+  height: 150rpx;
+  padding-bottom: 18rpx;
+  border-radius: 10rpx;
+  background: var(--accent);
+  overflow: hidden;
+}
+
+.drop-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 38rpx;
+  height: 38rpx;
+  background: linear-gradient(225deg, var(--paper) 50%, var(--accent-press) 50%);
+}
+
+.drop-ext {
+  font-size: 22rpx;
   font-weight: 700;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
+  color: #ffffff;
 }
 
-.file-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.file-name {
-  color: #1c1c1e;
-  font-size: 28rpx;
+.drop-title {
+  margin-top: 32rpx;
+  font-size: 32rpx;
   font-weight: 600;
+  color: var(--ink);
 }
 
-.file-remove {
-  flex-shrink: 0;
-  padding: 12rpx 0 12rpx 16rpx;
-  color: #c43c3c;
-  font-size: 25rpx;
+.drop-hint {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--muted);
 }
 
-/* ---------------- 表单 ---------------- */
-.field-last {
-  margin-bottom: 0;
+.howto {
+  margin-top: 28rpx;
+  padding: 0 8rpx;
 }
 
-/* ---------------- 流程说明 ---------------- */
-.guide-body {
-  margin-top: 26rpx;
+.howto-step {
+  align-items: flex-start;
+  padding: 10rpx 0;
+  font-size: 26rpx;
+  color: var(--ink-2);
 }
 
-.guide-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 18rpx;
-}
-
-.guide-no {
+.howto-no {
   flex-shrink: 0;
   width: 40rpx;
-  margin-right: 14rpx;
-  color: #1d6f5f;
-  font-size: 24rpx;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--serif);
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-.guide-text {
-  color: #1c1c1e;
-  font-size: 27rpx;
-}
+/* ---------- 已选文件 ---------- */
 
-.guide-tail {
-  display: block;
-  margin-top: 24rpx;
-  color: #6e6e73;
-  line-height: 1.65;
-}
-
-/* ---------------- 进度 / 错误 ---------------- */
-.progress-card {
-  border-bottom: 0;
-}
-
-.progress {
-  height: 6rpx;
-  margin: 24rpx 0;
+.picked {
+  position: relative;
+  padding: 0;
   overflow: hidden;
-  border-radius: 3rpx;
-  background: #ececf0;
 }
 
-.progress-bar {
-  height: 100%;
-  border-radius: 3rpx;
-  background: #1d6f5f;
-  transition: width 0.25s ease;
+.picked-uploading {
+  border-color: var(--accent);
 }
 
-.cancel-btn {
-  width: 100%;
+.picked-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--accent-wash);
+  transition: width 0.3s ease;
 }
 
-.error-card {
-  margin-top: 24rpx;
-  padding: 24rpx;
-  border: 0;
-  border-radius: 18rpx;
-  background: #fff1f1;
+.picked-row {
+  position: relative;
+  gap: 24rpx;
+  padding: 30rpx 32rpx;
 }
 
-.error-card .error-text {
+.picked-book {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 64rpx;
+  height: 80rpx;
+  padding-bottom: 10rpx;
+  border-radius: 4rpx 10rpx 10rpx 4rpx;
+  border-left: 8rpx solid var(--accent-press);
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 16rpx;
+  font-weight: 700;
+}
+
+.picked-name {
+  display: block;
+  font-size: 29rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.picked-meta {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: var(--muted);
+}
+
+.picked-uploading .picked-meta {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.picked-swap {
+  flex-shrink: 0;
+  padding: 12rpx 0 12rpx 16rpx;
   font-size: 26rpx;
-  line-height: 1.6;
+  color: var(--accent);
 }
 
-/* ---------------- 固定提交动作 ---------------- */
-.submit {
-  position: fixed;
-  z-index: 20;
-  right: 32rpx;
-  bottom: calc(24rpx + constant(safe-area-inset-bottom));
-  bottom: calc(24rpx + env(safe-area-inset-bottom));
-  left: 32rpx;
-  width: auto;
-  margin: 0;
+.error {
+  margin-top: 24rpx;
+}
+
+.form {
+  margin-top: 24rpx;
+}
+
+/* ---------- 流程说明 ---------- */
+
+.after {
+  margin-top: 24rpx;
+  padding: 0 32rpx;
+}
+
+.after-head {
+  padding: 30rpx 0;
+}
+
+.after-title {
+  font-size: 27rpx;
+  color: var(--ink-2);
+}
+
+.after-sign {
+  font-size: 24rpx;
+  color: var(--accent);
+}
+
+.after-body {
+  padding-bottom: 30rpx;
+}
+
+.after-step {
+  align-items: flex-start;
+  padding: 8rpx 0;
+  font-size: 25rpx;
+  color: var(--ink-2);
+}
+
+.after-no {
+  flex-shrink: 0;
+  width: 40rpx;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.after-tail {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 23rpx;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picked-fill {
+    transition: none;
+  }
 }
