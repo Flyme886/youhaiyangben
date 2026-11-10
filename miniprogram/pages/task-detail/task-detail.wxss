@@ -1,68 +1,68 @@
 /* ---------- 标题 ---------- */
 
-.detail-name {
+.head {
+  padding: 32rpx 8rpx 40rpx;
+}
+
+.name {
   display: block;
-  font-family: var(--serif);
   font-size: 46rpx;
   font-weight: 700;
   line-height: 1.3;
+  letter-spacing: -0.5rpx;
   color: var(--ink);
   word-break: break-all;
 }
 
-.detail-sub {
-  margin-top: 18rpx;
+.head-meta {
+  margin-top: 20rpx;
 }
 
-.detail-when {
-  margin-left: 18rpx;
-  font-size: 24rpx;
+.head-when {
+  margin-left: 24rpx;
+  font-size: 25rpx;
   color: var(--muted);
 }
 
-.detail-note {
+.head-note {
   display: block;
-  margin-top: 14rpx;
-  font-size: 25rpx;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
   color: var(--ink-2);
 }
 
-/* ---------- 主区：进行中 ---------- */
+/* ---------- 进行中 ---------- */
 
-.hero-live {
-  border-color: var(--accent);
-  border-width: 2rpx;
-}
-
-.hero-step {
+.now {
   display: block;
   font-size: 38rpx;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--primary);
 }
 
-.hero-step-sub {
+.now-sub {
   display: block;
   margin-top: 8rpx;
-  font-size: 25rpx;
+  font-size: 26rpx;
   color: var(--muted);
 }
 
-.hero-track {
-  margin-top: 28rpx;
+.now-track {
+  margin-top: 32rpx;
 }
 
-.hero-foot {
-  margin-top: 14rpx;
-  font-size: 22rpx;
+.now-foot {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 23rpx;
   color: var(--muted);
 }
 
-/* 步骤时间线 */
 .steps {
-  margin-top: 36rpx;
-  padding-top: 32rpx;
-  border-top: 1rpx solid var(--rule);
+  margin-top: 40rpx;
+  padding-top: 36rpx;
+  border-top: 1rpx solid var(--line);
 }
 
 .step {
@@ -73,65 +73,46 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 44rpx;
-  margin-right: 22rpx;
+  width: 24rpx;
+  margin-right: 24rpx;
+  padding-top: 12rpx;
 }
 
-.step-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44rpx;
-  height: 44rpx;
+.step-dot {
+  width: 20rpx;
+  height: 20rpx;
   border-radius: 50%;
-  border: 2rpx solid var(--rule-strong);
-  font-size: 22rpx;
-  font-weight: 600;
-  color: var(--muted);
-  background: var(--sheet);
+  box-shadow: inset 0 0 0 3rpx var(--line-strong);
 }
 
 .step-line {
   flex: 1;
-  width: 2rpx;
-  min-height: 28rpx;
-  margin: 6rpx 0;
-  background: var(--rule);
+  width: 3rpx;
+  margin: 8rpx 0 4rpx;
+  border-radius: 2rpx;
+  background: var(--line);
 }
 
-.step-check {
-  width: 18rpx;
-  height: 10rpx;
-  margin-top: -4rpx;
-  border-left: 3rpx solid #ffffff;
-  border-bottom: 3rpx solid #ffffff;
-  transform: rotate(-45deg);
-}
-
-.step-done .step-mark {
-  border-color: var(--accent);
-  background: var(--accent);
+.step-done .step-dot {
+  background: var(--primary);
+  box-shadow: none;
 }
 
 .step-done .step-line {
-  background: var(--accent);
+  background: var(--primary);
 }
 
-.step-doing .step-mark {
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 0 8rpx var(--accent-wash);
+.step-doing .step-dot {
+  box-shadow: inset 0 0 0 6rpx var(--primary), 0 0 0 8rpx var(--primary-wash);
 }
 
 .step-body {
-  flex: 1;
-  padding-bottom: 28rpx;
+  padding-bottom: 32rpx;
 }
 
 .step-label {
   display: block;
   font-size: 28rpx;
-  line-height: 44rpx;
   color: var(--muted);
 }
 
@@ -140,157 +121,197 @@
 }
 
 .step-doing .step-label {
-  color: var(--accent);
+  color: var(--primary);
   font-weight: 600;
 }
 
 .step-hint {
   display: block;
+  margin-top: 4rpx;
   font-size: 23rpx;
+  color: var(--faint);
+}
+
+.step-doing .step-hint {
   color: var(--muted);
 }
 
-/* ---------- 主区：已结束 ---------- */
+/* ---------- 已结束：数字 + 样本格 ---------- */
 
-.hero-top {
-  align-items: flex-start;
-}
-
-.cov-figure {
+.figure {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
 }
 
-.cov-got {
-  font-family: var(--serif);
+.figure-n {
+  margin-right: 14rpx;
   font-size: 96rpx;
   font-weight: 700;
   line-height: 1;
+  letter-spacing: -2rpx;
   color: var(--ink);
 }
 
-.cov-total {
-  margin-left: 10rpx;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: var(--muted);
+.figure-of {
+  font-size: 27rpx;
+  color: var(--ink-2);
 }
 
-.cov-plain {
+.figure-plain {
   display: block;
-  font-family: var(--serif);
   font-size: 48rpx;
   font-weight: 700;
-  line-height: 1.2;
 }
 
-.cov-caption {
+.figure-sub {
   display: block;
-  margin-top: 10rpx;
-  font-size: 25rpx;
-  color: var(--ink-2);
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--blocked-ink);
 }
 
-/* 取证条 */
-.evidence {
-  display: flex;
-  height: 22rpx;
-  margin-top: 40rpx;
-  border-radius: 6rpx;
-  overflow: hidden;
-  background: var(--well);
+/* 20 列。每格一条样本（或 N 条） */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 6rpx;
+  margin-top: 36rpx;
 }
 
-.ev-seg + .ev-seg {
-  border-left: 3rpx solid var(--sheet);
+.cell {
+  height: 24rpx;
+  border-radius: 5rpx;
 }
 
-.ev-got {
-  background: var(--ok);
+.cell-got {
+  background: var(--got);
 }
 
-.ev-blocked {
-  background: #c99541;
+.cell-blocked {
+  background: var(--blocked);
 }
 
-.ev-broken {
-  background: #aab3ae;
+.cell-broken {
+  background: var(--broken);
 }
 
-.ev-legend {
-  margin-top: 20rpx;
+/* 全页唯一一次主动动效：格子依次点亮 */
+.grid-reveal .cell {
+  animation: cell-in 260ms ease-out both;
 }
 
-.ev-row {
+@keyframes cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-reveal .cell {
+    animation: none;
+  }
+}
+
+.grid-note {
+  display: block;
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+  text-align: right;
+}
+
+.legend {
+  margin-top: 28rpx;
+}
+
+.legend-row {
   padding: 10rpx 0;
-  font-size: 25rpx;
+  font-size: 26rpx;
   color: var(--ink-2);
 }
 
-.ev-swatch {
-  width: 18rpx;
-  height: 18rpx;
-  margin-right: 16rpx;
-  border-radius: 4rpx;
+.swatch {
+  width: 20rpx;
+  height: 20rpx;
+  margin-right: 18rpx;
+  border-radius: 5rpx;
 }
 
-.ev-count {
+.legend-n {
   font-weight: 600;
   color: var(--ink);
 }
 
-.hero-hint {
+.verdict {
   display: block;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid var(--rule);
-  font-size: 24rpx;
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid var(--line);
+  font-size: 25rpx;
+  line-height: 1.6;
   color: var(--muted);
+}
+
+/* ---------- 交付说明 ---------- */
+
+.issues {
+  margin-top: 20rpx;
+}
+
+.issue {
+  display: block;
+}
+
+.issue + .issue {
+  margin-top: 12rpx;
 }
 
 /* ---------- 文件 ---------- */
 
-.file-sheet {
-  padding: 0;
-  overflow: hidden;
+.file {
+  gap: 26rpx;
 }
 
-.file-row {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  padding: 26rpx 32rpx;
-}
-
-.file-row + .file-row {
-  border-top: 1rpx solid var(--rule);
-}
-
-.file-row-press {
-  background: #f7f9f8;
-}
-
-/* 一册书：墨绿书脊 + 扩展名 */
-.file-book {
+/* 文件图标：带折角的一页纸，Word 墨绿、其它灰 */
+.doc {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   flex-shrink: 0;
-  width: 64rpx;
-  height: 80rpx;
-  padding-bottom: 10rpx;
-  border-radius: 4rpx 10rpx 10rpx 4rpx;
-  border-left: 8rpx solid var(--accent-press);
-  background: var(--accent);
-  color: #ffffff;
+  width: 68rpx;
+  height: 84rpx;
+  padding-bottom: 12rpx;
+  border-radius: 10rpx;
+  background: var(--primary);
+  overflow: hidden;
+}
+
+.doc-pack {
+  background: #9aa1a7;
+}
+
+.doc-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22rpx;
+  height: 22rpx;
+  border-bottom-left-radius: 6rpx;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.doc-ext {
   font-size: 17rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
-}
-
-.file-book-pack {
-  border-left-color: #8d9792;
-  background: #aab3ae;
+  color: #ffffff;
 }
 
 .file-name {
@@ -302,162 +323,94 @@
 
 .file-meta {
   display: block;
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: var(--muted);
-}
-
-.file-action {
-  flex-shrink: 0;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.file-empty {
-  font-size: 25rpx;
-  color: var(--muted);
-  text-align: center;
-}
-
-/* ---------- 说明 / 结论 ---------- */
-
-.issue-line {
-  display: block;
-}
-
-.issue-line + .issue-line {
-  margin-top: 12rpx;
-}
-
-.conclusion {
-  font-family: var(--serif);
-  font-size: 29rpx;
-  line-height: 1.85;
-  color: var(--ink);
-}
-
-/* ---------- 折叠区 ---------- */
-
-.fold-sheet {
-  margin-top: 40rpx;
-  padding: 0 32rpx;
-}
-
-.fold + .fold {
-  border-top: 1rpx solid var(--rule);
-}
-
-.fold-head {
-  padding: 30rpx 0;
-}
-
-.fold-title {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.fold-sign {
-  font-size: 24rpx;
-  color: var(--accent);
-}
-
-.fold-body {
-  padding-bottom: 28rpx;
-}
-
-.mini-step {
-  padding: 10rpx 0;
-  font-size: 25rpx;
-  color: var(--ink-2);
-}
-
-.mini-dot {
-  width: 12rpx;
-  height: 12rpx;
-  margin-right: 18rpx;
-  border-radius: 50%;
-  background: var(--rule-strong);
-}
-
-.mini-done .mini-dot {
-  background: var(--accent);
-}
-
-.mini-state {
-  font-size: 22rpx;
-  color: var(--muted);
-}
-
-.quality {
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx dashed var(--rule);
-}
-
-.quality-title {
-  display: block;
-  margin-bottom: 6rpx;
+  margin-top: 6rpx;
   font-size: 23rpx;
   color: var(--muted);
 }
 
-.kv {
-  padding: 10rpx 0;
-  font-size: 24rpx;
-  color: var(--ink-2);
+.file-act {
+  flex-shrink: 0;
+  font-size: 27rpx;
+  font-weight: 600;
+  color: var(--primary);
 }
 
-.kv-link {
-  color: var(--accent);
+.files-empty {
+  font-size: 26rpx;
+  color: var(--muted);
+  text-align: center;
 }
 
-.log-box {
+/* ---------- 结论 ---------- */
+
+.conclusion {
+  font-size: 28rpx;
+  line-height: 1.85;
+  color: var(--ink);
+}
+
+/* ---------- 折叠 ---------- */
+
+.folds {
+  margin-top: 48rpx;
+}
+
+.fold-split {
+  height: 1rpx;
+  margin: 0 32rpx;
+  background: var(--line);
+}
+
+.fold-sub {
+  display: block;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx dashed var(--line);
+  font-size: 23rpx;
+  color: var(--muted);
+}
+
+.log {
   max-height: 520rpx;
-  margin-top: 16rpx;
-  padding: 20rpx;
-  border-radius: 12rpx;
-  background: var(--ink);
+  margin-top: 20rpx;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  background: #1d2329;
   overflow-y: scroll;
 }
 
 .log-text {
-  font-family: Menlo, 'SF Mono', Consolas, monospace;
+  font-family: var(--mono);
   font-size: 20rpx;
-  line-height: 1.6;
-  color: #cfd8d3;
+  line-height: 1.65;
+  color: #cbd3cf;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
-.copy-btn {
-  margin-top: 16rpx;
+.log-copy {
   width: 200rpx;
+  margin-top: 20rpx;
 }
 
-/* ---------- 状态 ---------- */
+/* ---------- 加载 ---------- */
 
 .sk-name {
-  width: 70%;
-  height: 48rpx;
+  width: 72%;
+  height: 50rpx;
 }
 
 .sk-sub {
   width: 36%;
   height: 26rpx;
-  margin-top: 20rpx;
+  margin-top: 22rpx;
 }
 
 .sk-hero {
-  height: 220rpx;
-}
-
-.load-error {
-  padding-top: 40rpx;
+  height: 240rpx;
 }
 
 .back-btn {
-  margin-top: 24rpx;
   width: 260rpx;
+  margin-top: 24rpx;
 }

@@ -1,146 +1,166 @@
-<view class="page">
-  <view class="masthead">
-    <text class="masthead-title">任务</text>
-    <text class="masthead-sub">{{headline}}</text>
-  </view>
-
-  <!-- 搜索：后端 /tasks/mine 支持按任务名 / 编号模糊查 -->
-  <view class="search {{keyword ? 'search-on' : ''}}">
-    <view class="search-glass" aria-hidden="true"></view>
-    <input
-      class="search-input"
-      value="{{keyword}}"
-      placeholder="搜索任务名或编号"
-      placeholder-class="placeholder"
-      confirm-type="search"
-      bindinput="onKeywordInput"
-      bindconfirm="onKeywordConfirm"
-    />
-    <view wx:if="{{keyword}}" class="search-clear" bindtap="onKeywordClear" aria-label="清除搜索">清除</view>
-  </view>
-
-  <!-- 筛选：数字直接长在标签上，不再单独摆一排统计卡 -->
-  <view class="filters" aria-role="tablist">
-    <view
-      wx:for="{{filters}}"
-      wx:key="key"
-      class="filter {{activeFilter === item.key ? 'filter-on' : ''}}"
-      aria-role="tab"
-      aria-selected="{{activeFilter === item.key}}"
-      bindtap="onFilterTap"
-      data-key="{{item.key}}"
-    >
-      <text class="filter-label">{{item.label}}</text>
-      <text wx:if="{{item.count !== null}}" class="filter-count {{item.key === 'issue' && item.count > 0 ? 'filter-count-bad' : ''}}">{{item.count}}</text>
+<view class="page page-with-bar">
+  <!-- 自定义导航：标题行与右上角胶囊对齐，左侧是设置入口 -->
+  <view class="nav" style="padding-top: {{nav.top}}px; height: {{nav.bottom}}px; padding-right: {{nav.reserve}}px;">
+    <view class="row nav-row" style="height: {{nav.height}}px;">
+      <view
+        class="nav-me"
+        hover-class="btn-press"
+        bindtap="onGoMine"
+        aria-role="button"
+        aria-label="设置与帮助"
+      >
+        <view class="nav-me-head"></view>
+        <view class="nav-me-body"></view>
+      </view>
+      <text class="nav-title">样本任务台</text>
     </view>
+  </view>
+
+  <!-- 开场：一句话说清现在的状况 -->
+  <view class="intro">
+    <text class="title-xl">{{headline.title}}</text>
+    <text class="lede">{{headline.sub}}</text>
   </view>
 
   <!-- 首屏骨架 -->
-  <view wx:if="{{firstLoading}}" class="sheet list-sheet">
-    <view wx:for="{{[1, 2, 3]}}" wx:key="*this" class="sk-row">
-      <view class="skeleton sk-title"></view>
-      <view class="skeleton sk-meta"></view>
+  <block wx:if="{{firstLoading}}">
+    <view class="panel sk-panel">
+      <view wx:for="{{[1, 2, 3]}}" wx:key="*this" class="sk-row">
+        <view class="skeleton sk-title"></view>
+        <view class="skeleton sk-meta"></view>
+      </view>
     </view>
-  </view>
+  </block>
 
-  <!-- 加载失败：把原因和定位信息一起摊开 -->
+  <!-- 加载失败：原因和定位信息一起摊开 -->
   <view wx:elif="{{error}}" class="notice notice-bad load-error">
     <text>{{error}}</text>
     <text wx:if="{{errorDetail}}" class="notice-detail">{{errorDetail}}</text>
-    <view class="btn btn-sm btn-quiet retry" hover-class="btn-press" bindtap="onRetry">重新加载</view>
+    <view class="btn btn-sm btn-soft retry" hover-class="btn-press" bindtap="onRetry">重新加载</view>
   </view>
 
-  <!-- 空状态 -->
-  <block wx:elif="{{liveList.length === 0 && restList.length === 0}}">
-    <empty-state
-      wx:if="{{keyword}}"
-      text="没有匹配的任务"
-      hint="换个关键词，或清除搜索查看全部任务"
-    />
-    <empty-state
-      wx:elif="{{activeFilter !== 'all'}}"
-      text="这里暂时是空的"
-      hint="切到「全部」看看其它任务"
-    />
-    <empty-state
-      wx:else
-      text="还没有任务"
-      hint="上传一份含链接的 Excel，服务器会逐条截图，每 50 条装订成一册 Word"
-      actionText="上传表格"
-      bind:action="onGoNew"
-    />
-  </block>
-
   <block wx:else>
-    <!-- 进行中：置顶、展开显示步骤和进度 -->
-    <block wx:if="{{liveList.length > 0}}">
-      <view class="section-head">
-        <text class="section-title">正在处理</text>
-        <text class="section-aside">每 5 秒自动刷新</text>
-      </view>
-
+    <!-- 正在处理：置顶，给足空间 -->
+    <view wx:if="{{liveList.length > 0}}" class="live">
       <view
         wx:for="{{liveList}}"
         wx:key="id"
-        class="sheet live-card"
-        hover-class="sheet-press"
+        class="panel live-card"
+        hover-class="row-press"
         hover-stay-time="60"
         bindtap="onTaskTap"
         data-id="{{item.id}}"
       >
-        <view class="row live-head">
-          <text class="task-name grow ellipsis">{{item.nameText}}</text>
+        <view class="row">
+          <text class="live-name grow ellipsis">{{item.nameText}}</text>
           <status-tag status="{{item.status}}" compact="{{true}}" />
         </view>
-
         <view class="row live-step">
           <text class="grow">{{item.stepText}}</text>
-          <text class="live-step-no">{{item.stepNo}}/4</text>
+          <text class="live-step-no">{{item.status === 'queued' ? '' : item.stepNo + ' / 4'}}</text>
         </view>
-
-        <view class="track">
+        <view class="track {{item.status === 'running' ? 'track-live' : ''}}">
           <view class="track-fill" style="width: {{item.progress}}%"></view>
         </view>
-
-        <text class="live-meta">{{item.status === 'queued' ? '提交于 ' + item.createdText : '已运行 ' + item.durationText}}</text>
+        <text class="live-meta">{{item.status === 'queued' ? item.clock + ' 提交，等待开始' : '已运行 ' + item.durationText}}</text>
       </view>
+    </view>
+
+    <!-- 筛选 + 搜索 -->
+    <view class="row tools">
+      <scroll-view class="grow chips-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="chips">
+          <view
+            wx:for="{{filters}}"
+            wx:key="key"
+            class="chip {{activeFilter === item.key ? 'chip-on' : ''}}"
+            bindtap="onFilterTap"
+            data-key="{{item.key}}"
+            aria-role="tab"
+            aria-selected="{{activeFilter === item.key}}"
+          >
+            <text>{{item.label}}</text>
+            <text wx:if="{{item.count !== null}}" class="chip-n {{item.key === 'issue' && item.count > 0 ? 'chip-n-bad' : ''}}">{{item.count}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view
+        class="search-btn {{searchOpen || keyword ? 'search-btn-on' : ''}}"
+        hover-class="btn-press"
+        bindtap="onToggleSearch"
+        aria-role="button"
+        aria-label="搜索任务"
+      >
+        <view class="glass"></view>
+      </view>
+    </view>
+
+    <view wx:if="{{searchOpen}}" class="row search">
+      <input
+        class="grow search-input"
+        value="{{keyword}}"
+        focus="{{searchOpen}}"
+        placeholder="任务名或编号"
+        placeholder-class="placeholder"
+        confirm-type="search"
+        bindinput="onKeywordInput"
+        bindconfirm="onKeywordConfirm"
+      />
+      <text class="search-cancel" bindtap="onKeywordClear">{{keyword ? '清除' : '收起'}}</text>
+    </view>
+
+    <!-- 空状态 -->
+    <block wx:if="{{groups.length === 0 && liveList.length === 0}}">
+      <empty-state wx:if="{{keyword}}" text="没有找到「{{keyword}}」" hint="换个关键词试试，任务编号也可以搜" />
+      <empty-state wx:elif="{{activeFilter !== 'all'}}" text="这一栏是空的" hint="切回「全部」看看其它任务" />
+      <empty-state
+        wx:else
+        text="还没有任务"
+        hint="上传一份带链接的 Excel，服务器会逐条截图，每 50 条装订成一册 Word"
+      />
     </block>
 
-    <!-- 已结束：一张纸上的目录，左侧色条当书脊 -->
-    <block wx:if="{{restList.length > 0}}">
-      <view wx:if="{{liveList.length > 0}}" class="section-head">
-        <text class="section-title">已结束</text>
+    <!-- 按日期分组的任务 -->
+    <block wx:for="{{groups}}" wx:for-item="group" wx:key="key">
+      <view class="group-head">
+        <text class="group-title">{{group.label}}</text>
+        <text class="group-aside">{{group.items.length}} 个</text>
       </view>
-      <view class="sheet list-sheet {{liveList.length > 0 ? '' : 'list-sheet-first'}}">
+      <view class="panel">
         <view
-          wx:for="{{restList}}"
+          wx:for="{{group.items}}"
           wx:key="id"
-          class="task-row"
-          hover-class="task-row-press"
+          class="line-row task"
+          hover-class="row-press"
           hover-stay-time="60"
           bindtap="onTaskTap"
           data-id="{{item.id}}"
         >
-          <view class="spine spine-{{item.statusTone}}" aria-hidden="true"></view>
           <view class="grow">
-            <view class="row">
-              <text class="task-name grow ellipsis">{{item.nameText}}</text>
-              <status-tag status="{{item.status}}" compact="{{true}}" />
-            </view>
-            <view class="row-meta">
-              <text>{{item.createdText}}</text>
+            <text class="task-name ellipsis">{{item.nameText}}</text>
+            <view class="task-meta">
+              <text>{{item.clock}}</text>
               <text wx:if="{{item.docx_count > 0}}">Word {{item.docx_count}} 册</text>
-              <text wx:if="{{item.issue_count > 0}}" class="meta-warn">缺图 {{item.issue_count}} 条</text>
+              <text wx:if="{{item.issue_count > 0}}" class="task-meta-warn">缺图 {{item.issue_count}}</text>
+              <text wx:if="{{item.note}}" class="task-note ellipsis">{{item.note}}</text>
             </view>
-            <text wx:if="{{item.note}}" class="row-note ellipsis">{{item.note}}</text>
           </view>
+          <status-tag status="{{item.status}}" compact="{{true}}" />
         </view>
       </view>
     </block>
 
-    <view class="load-more">
-      <text wx:if="{{loading && !firstLoading}}">加载中</text>
-      <text wx:elif="{{!hasMore && total > 0}}">共 {{total}} 个任务</text>
+    <view wx:if="{{groups.length > 0}}" class="list-end">
+      <text wx:if="{{loading}}">正在加载</text>
+      <text wx:elif="{{!hasMore}}">以上是全部 {{total}} 个任务</text>
     </view>
   </block>
+
+  <!-- 主操作常驻拇指区 -->
+  <view class="dock">
+    <view class="btn btn-primary" hover-class="btn-press" bindtap="onGoNew">
+      <view class="plus"></view>
+      <text>新建任务</text>
+    </view>
+  </view>
 </view>

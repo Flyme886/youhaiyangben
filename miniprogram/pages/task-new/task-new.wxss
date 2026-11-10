@@ -1,94 +1,86 @@
+.intro {
+  padding: 32rpx 8rpx 40rpx;
+}
+
 /* ---------- 选文件 ---------- */
 
-.drop {
+.pick {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 64rpx 40rpx 56rpx;
-  border: 3rpx dashed var(--rule-strong);
-  border-radius: 24rpx;
-  background: var(--sheet);
+  padding: 72rpx 40rpx 64rpx;
 }
 
-.drop-press {
-  border-color: var(--accent);
-  background: var(--accent-wash);
-}
-
-/* 一张折角的表格纸 */
-.drop-sheet {
+/* 一张表格纸：折角 + 3×3 格子 */
+.sheet-art {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 120rpx;
-  height: 150rpx;
-  padding-bottom: 18rpx;
-  border-radius: 10rpx;
-  background: var(--accent);
+  width: 132rpx;
+  height: 160rpx;
+  padding: 44rpx 20rpx 0;
+  border-radius: 14rpx;
+  background: var(--primary);
   overflow: hidden;
 }
 
-.drop-fold {
+.sheet-art-corner {
   position: absolute;
   top: 0;
   right: 0;
-  width: 38rpx;
-  height: 38rpx;
-  background: linear-gradient(225deg, var(--paper) 50%, var(--accent-press) 50%);
+  width: 34rpx;
+  height: 34rpx;
+  border-bottom-left-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.drop-ext {
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  color: #ffffff;
+.sheet-art-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6rpx;
 }
 
-.drop-title {
-  margin-top: 32rpx;
+.sheet-art-cell {
+  height: 22rpx;
+  border-radius: 3rpx;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.pick-title {
+  margin-top: 40rpx;
   font-size: 32rpx;
   font-weight: 600;
   color: var(--ink);
 }
 
-.drop-hint {
+.pick-hint {
   margin-top: 10rpx;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: var(--muted);
 }
 
 .howto {
-  margin-top: 28rpx;
-  padding: 0 8rpx;
+  padding: 32rpx 8rpx 0;
 }
 
 .howto-step {
   align-items: flex-start;
   padding: 10rpx 0;
   font-size: 26rpx;
+  line-height: 1.6;
   color: var(--ink-2);
 }
 
-.howto-no {
+.howto-n {
   flex-shrink: 0;
-  width: 40rpx;
-  font-family: var(--serif);
-  font-size: 28rpx;
+  width: 44rpx;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--primary);
 }
 
 /* ---------- 已选文件 ---------- */
 
 .picked {
   position: relative;
-  padding: 0;
   overflow: hidden;
-}
-
-.picked-uploading {
-  border-color: var(--accent);
 }
 
 .picked-fill {
@@ -96,29 +88,28 @@
   top: 0;
   bottom: 0;
   left: 0;
-  background: var(--accent-wash);
+  background: var(--primary-wash);
   transition: width 0.3s ease;
 }
 
 .picked-row {
   position: relative;
-  gap: 24rpx;
-  padding: 30rpx 32rpx;
+  gap: 26rpx;
+  padding: 32rpx;
 }
 
-.picked-book {
+.xls {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   flex-shrink: 0;
-  width: 64rpx;
-  height: 80rpx;
-  padding-bottom: 10rpx;
-  border-radius: 4rpx 10rpx 10rpx 4rpx;
-  border-left: 8rpx solid var(--accent-press);
-  background: var(--accent);
+  width: 68rpx;
+  height: 84rpx;
+  padding-bottom: 12rpx;
+  border-radius: 10rpx;
+  background: var(--primary);
   color: #ffffff;
-  font-size: 16rpx;
+  font-size: 17rpx;
   font-weight: 700;
 }
 
@@ -131,21 +122,21 @@
 
 .picked-meta {
   display: block;
-  margin-top: 4rpx;
-  font-size: 23rpx;
+  margin-top: 6rpx;
+  font-size: 24rpx;
   color: var(--muted);
 }
 
-.picked-uploading .picked-meta {
-  color: var(--accent);
+.picked-busy .picked-meta {
+  color: var(--primary);
   font-weight: 600;
 }
 
 .picked-swap {
   flex-shrink: 0;
-  padding: 12rpx 0 12rpx 16rpx;
+  padding: 12rpx 0 12rpx 20rpx;
   font-size: 26rpx;
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .error {
@@ -160,45 +151,19 @@
 
 .after {
   margin-top: 24rpx;
-  padding: 0 32rpx;
-}
-
-.after-head {
-  padding: 30rpx 0;
-}
-
-.after-title {
-  font-size: 27rpx;
-  color: var(--ink-2);
-}
-
-.after-sign {
-  font-size: 24rpx;
-  color: var(--accent);
-}
-
-.after-body {
-  padding-bottom: 30rpx;
 }
 
 .after-step {
   align-items: flex-start;
   padding: 8rpx 0;
-  font-size: 25rpx;
+  font-size: 26rpx;
   color: var(--ink-2);
-}
-
-.after-no {
-  flex-shrink: 0;
-  width: 40rpx;
-  font-weight: 700;
-  color: var(--accent);
 }
 
 .after-tail {
   display: block;
-  margin-top: 16rpx;
-  font-size: 23rpx;
+  margin-top: 18rpx;
+  font-size: 24rpx;
   line-height: 1.7;
   color: var(--muted);
 }

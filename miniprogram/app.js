@@ -47,5 +47,42 @@ App({
   /** 页面里 await 这个，保证登录态就绪后再发业务请求 */
   whenLoginReady() {
     return this.ensureLoginPromise || Promise.resolve(null);
+  },
+
+  /**
+   * 自定义导航栏需要的尺寸（px）。首页用 navigationStyle: custom，
+   * 标题行要和右上角胶囊按钮垂直对齐，左右留白也要避开胶囊。
+   */
+  navMetrics() {
+    if (this._nav) return this._nav;
+    let statusBar = 20;
+    let windowWidth = 375;
+    try {
+      const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      statusBar = info.statusBarHeight || statusBar;
+      windowWidth = info.windowWidth || windowWidth;
+    } catch (e) {
+      /* 取不到就用兜底值 */
+    }
+    let capsule = null;
+    try {
+      capsule = wx.getMenuButtonBoundingClientRect();
+    } catch (e) {
+      capsule = null;
+    }
+    const top = capsule && capsule.top ? capsule.top : statusBar + 4;
+    const height = capsule && capsule.height ? capsule.height : 32;
+    const right = capsule && capsule.left ? windowWidth - capsule.left : 96;
+    this._nav = {
+      /** 标题行顶部 */
+      top,
+      /** 标题行高度（与胶囊同高） */
+      height,
+      /** 右侧需要让出的宽度（胶囊 + 间距） */
+      reserve: right + 8,
+      /** 导航区总高度 */
+      bottom: top + height + 8
+    };
+    return this._nav;
   }
 });

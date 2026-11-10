@@ -1,77 +1,72 @@
-.tag {
+/* 状态：一个色点 + 文字。不用底色块，避免列表里满屏彩色胶囊 */
+.st {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  height: 44rpx;
-  padding: 0 16rpx;
-  border-radius: 10rpx;
-  font-size: 22rpx;
-  font-weight: 600;
+  font-size: 25rpx;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 1rpx;
+  color: #4b535a;
 }
 
-.tag-compact {
-  height: 38rpx;
-  padding: 0 12rpx;
-  font-size: 21rpx;
+.st-compact {
+  font-size: 23rpx;
 }
 
-.tag-text {
-  line-height: 1;
-}
-
-.tag-dot {
-  width: 10rpx;
-  height: 10rpx;
+.st-dot {
+  width: 12rpx;
+  height: 12rpx;
   margin-right: 10rpx;
   border-radius: 50%;
   background: currentColor;
-  animation: tag-pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes tag-pulse {
+.st-compact .st-dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 8rpx;
+}
+
+.st-dot-live {
+  animation: st-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes st-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.25;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tag-dot {
+  .st-dot-live {
     animation: none;
   }
 }
 
-.tag-info {
-  background: #e8ece9;
-  color: #4a5550;
+.st-info {
+  color: #858c92;
 }
 
-.tag-active {
-  background: #e3eee9;
-  color: #1d5c4e;
+.st-active {
+  color: #1f5a4c;
 }
 
-.tag-ok {
-  background: #e4f1e8;
-  color: #2c7a4b;
+.st-ok {
+  color: #2e7d5b;
 }
 
-.tag-warn {
-  background: #f6ecdc;
-  color: #9a5f12;
+.st-warn {
+  color: #8e5e12;
 }
 
-.tag-bad {
-  background: #f6e4e1;
-  color: #a83a30;
+.st-bad {
+  color: #b4433a;
 }
 
-.tag-muted {
-  background: #e8ece9;
-  color: #7a847f;
+.st-muted {
+  color: #858c92;
 }

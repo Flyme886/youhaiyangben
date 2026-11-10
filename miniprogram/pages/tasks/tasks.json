@@ -1,7 +1,8 @@
 {
-  "navigationBarTitleText": "任务",
+  "navigationStyle": "custom",
   "enablePullDownRefresh": true,
-  "onReachBottomDistance": 160,
+  "backgroundTextStyle": "dark",
+  "onReachBottomDistance": 200,
   "usingComponents": {
     "status-tag": "/components/status-tag/index",
     "empty-state": "/components/empty-state/index"

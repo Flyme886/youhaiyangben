@@ -2,37 +2,61 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 120rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 96rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
 }
 
 .brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+}
+
+/* 4×4 小格：多数绿，两格琥珀 —— 一份交付的缩影 */
+.mark {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8rpx;
+  width: 136rpx;
+}
+
+.mark-cell {
+  height: 28rpx;
+  border-radius: 6rpx;
+}
+
+.mark-g {
+  background: var(--got);
+}
+
+.mark-b {
+  background: var(--blocked);
+}
+
+.mark-n {
+  background: var(--broken);
 }
 
 .brand-title {
-  margin-top: 56rpx;
-  font-family: var(--serif);
-  font-size: 56rpx;
+  margin-top: 48rpx;
+  font-size: 60rpx;
   font-weight: 700;
-  letter-spacing: 6rpx;
+  letter-spacing: -1rpx;
   color: var(--ink);
 }
 
 .brand-sub {
-  margin-top: 14rpx;
-  font-size: 26rpx;
-  color: var(--muted);
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  color: var(--ink-2);
 }
 
-.panel {
-  margin-top: 96rpx;
+.form {
+  margin-top: 112rpx;
 }
 
 .probe {
   margin-bottom: 28rpx;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: var(--muted);
 }
 
@@ -41,11 +65,11 @@
   height: 12rpx;
   margin-right: 14rpx;
   border-radius: 50%;
-  background: var(--rule-strong);
+  background: var(--line-strong);
 }
 
 .probe-ok .probe-dot {
-  background: var(--ok);
+  background: var(--got);
 }
 
 .probe-bad {
@@ -57,31 +81,32 @@
 }
 
 .probe-retry {
-  color: var(--accent);
+  color: var(--primary);
 }
 
 .probe-detail {
   margin-bottom: 28rpx;
 }
 
-.panel .login-main {
+/* 选择器加一层，压过 app.wxss 里 button.btn 的 width: auto */
+.form .wide {
   width: 100%;
 }
 
 .alt {
-  margin-top: 36rpx;
-  font-size: 26rpx;
-  color: var(--accent);
+  margin-top: 40rpx;
+  font-size: 27rpx;
+  color: var(--primary);
   text-align: center;
 }
 
 .pwd {
-  margin-top: 36rpx;
+  margin-top: 40rpx;
 }
 
-.pwd .pwd-btn {
-  margin-top: 20rpx !important;
-  width: 100%;
+.pwd-input {
+  margin-bottom: 20rpx;
+  background: var(--surface);
 }
 
 .login-error {
@@ -91,11 +116,13 @@
 .footer {
   display: flex;
   flex-direction: column;
-  align-items: center;
   margin-top: auto;
-  padding-top: 64rpx;
+  padding-top: 72rpx;
   font-size: 22rpx;
   line-height: 1.7;
-  color: var(--muted);
+  color: var(--faint);
+}
+
+.footer-url {
   max-width: 100%;
 }

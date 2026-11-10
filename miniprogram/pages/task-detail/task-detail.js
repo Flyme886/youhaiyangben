@@ -8,31 +8,31 @@ const {
   canResume,
   canCancel,
   isLive,
-  sealOf,
   coverageOf,
+  gridOf,
   currentStepIndex,
   describeError,
   captureSummary
 } = require('../../utils/status');
-const { formatFull, fromNow, durationText, formatSize, safeFileName, formatDateDot } = require('../../utils/util');
+const { formatFull, durationText, formatSize, safeFileName, formatClock, dayLabel } = require('../../utils/util');
 const config = require('../../config/index');
 
 const PREVIEWABLE = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf'];
 
 /** 底栏：每个状态只给最该做的一两件事 */
-function barOf(task, files) {
+function dockOf(task, files) {
   const status = task.status;
-  const firstDoc = files.filter((f) => f.ext === 'docx')[0];
-  const bar = {
+  const docs = files.filter((f) => f.ext === 'docx');
+  const dock = {
     cancel: canCancel(status),
     resume: canResume(status),
     resumeText: status === 'partial_completed' ? '补齐图片' : '重跑任务',
-    // 只有一册时才把「打开」放进底栏；多册在列表里逐个点更清楚
-    open: !isLive(status) && !!firstDoc && files.filter((f) => f.ext === 'docx').length === 1,
-    openName: firstDoc ? firstDoc.name : ''
+    // 只有一册时把「打开」放进底栏；多册在列表里逐个点更清楚
+    open: !isLive(status) && docs.length === 1,
+    openName: docs.length === 1 ? docs[0].name : ''
   };
-  bar.show = bar.cancel || bar.resume || bar.open;
-  return bar;
+  dock.show = dock.cancel || dock.resume || dock.open;
+  return dock;
 }
 
 Page({
@@ -47,15 +47,14 @@ Page({
     progress: 0,
     statusHint: '',
 
-    seal: null,
-    sealDate: '',
-    stampNow: false,
     coverage: null,
+    grid: null,
+    gridAnimate: false,
     quality: [],
 
     createdText: '',
     createdFull: '',
-    finishedText: '',
+    finishedFull: '',
     durationText: '',
 
     errorList: [],
@@ -64,8 +63,8 @@ Page({
     logTail: '',
 
     stepsOpen: false,
-    logOpen: false,
-    bar: { show: false },
+    techOpen: false,
+    dock: { show: false },
 
     loading: true,
     busy: false,
@@ -74,7 +73,7 @@ Page({
 
   onLoad(options) {
     this.pollTimer = null;
-    this.wasLive = null;
+    this.revealed = false;
     this.setData({ taskId: (options && options.id) || '' });
     ensureLogin().then((ok) => {
       if (ok) this.fetchDetail(true);
@@ -82,7 +81,6 @@ Page({
   },
 
   onShow() {
-    // 从后台切回来时继续轮询
     if (this.data.task && this.data.live) this.startPoll();
   },
 
@@ -119,24 +117,26 @@ Page({
   },
 
   applyTask(res) {
-    const meta = describeStatus(res.status);
     const summary = res.summary || {};
     const live = isLive(res.status);
+    const coverage = live ? null : coverageOf(summary);
 
-    // 页面开着时任务刚好结束 → 落章 + 轻震，这是全页唯一一次主动动效
-    const justFinished = this.wasLive === true && !live;
-    this.wasLive = live;
+    // 样本格第一次出现时点亮一次（首次打开已结束的任务，或在看时任务刚结束）
+    const animate = !!coverage && !this.revealed;
+    if (coverage) this.revealed = true;
 
     const files = (res.files || []).map((f) => {
       const ext = String(f.name || '').split('.').pop().toLowerCase();
       return Object.assign({}, f, {
         ext,
         extLabel: ext.toUpperCase(),
-        kind: ext === 'docx' || ext === 'doc' ? 'doc' : 'pack',
+        kind: ext === 'docx' || ext === 'doc' ? 'word' : 'pack',
         sizeText: formatSize(f.size),
         previewable: PREVIEWABLE.indexOf(ext) !== -1
       });
     });
+
+    const day = dayLabel(res.created_at);
 
     this.setData({
       task: res,
@@ -145,30 +145,31 @@ Page({
       stepText: describeStep(res.current_step),
       stepNo: Math.min(4, currentStepIndex(res.current_step) + 1),
       progress: progressOf(res),
-      statusHint: meta.hint,
+      statusHint: describeStatus(res.status).hint,
 
-      seal: sealOf(res.status),
-      sealDate: formatDateDot(res.finished_at),
-      stampNow: justFinished,
-      coverage: coverageOf(summary),
+      coverage,
+      grid: gridOf(coverage),
+      gridAnimate: animate,
       quality: captureSummary(summary).quality,
 
-      createdText: fromNow(res.created_at),
+      createdText: day.label + ' ' + formatClock(res.created_at),
       createdFull: formatFull(res.created_at),
-      finishedText: res.finished_at ? formatFull(res.finished_at) : '',
+      finishedFull: res.finished_at ? formatFull(res.finished_at) : '',
       durationText: res.started_at ? durationText(res.started_at, res.finished_at) : '',
 
       errorList: describeError(res.error_message),
       conclusion: String(summary.conclusion || '').trim(),
       files,
       logTail: res.log_tail || '',
-      bar: barOf(res, files),
+      dock: dockOf(res, files),
 
       loading: false,
       loadError: ''
     });
 
-    if (justFinished && wx.vibrateShort) wx.vibrateShort({ type: 'medium' });
+    // 在看着的时候任务结束：轻震一下提示结果到了
+    if (this.wasLive && !live && wx.vibrateShort) wx.vibrateShort({ type: 'light' });
+    this.wasLive = live;
   },
 
   /* ---------------- 轮询 ---------------- */
@@ -198,10 +199,10 @@ Page({
     wx.showModal({
       title: partial ? '补齐图片' : '重跑任务',
       content: partial
-        ? '只重新截取缺图的条目，已有的截图保留。完成后会生成新的 Word。'
+        ? '只重新截取缺图的条目，已有截图保留，完成后生成新的 Word。'
         : '任务会重新排队，从没完成的条目继续。',
       confirmText: partial ? '开始补图' : '重跑',
-      confirmColor: '#1d5c4e',
+      confirmColor: '#1f5a4c',
       success: (r) => {
         if (!r.confirm) return;
         this.setData({ busy: true });
@@ -210,7 +211,7 @@ Page({
           .then((res) => {
             const resumed = !(res && res.resumed === false);
             wx.showToast({ title: resumed ? '已重新排队' : '当前状态不需要重跑', icon: 'none' });
-            this.wasLive = null; // 新一轮开始，结束时再落一次章
+            this.revealed = false; // 新一轮结束时再点亮一次
             return this.fetchDetail(false);
           })
           .catch(() => {})
@@ -226,7 +227,7 @@ Page({
       content: '任务会立即停止，已经生成的部分会保留。',
       confirmText: '取消任务',
       cancelText: '继续运行',
-      confirmColor: '#a83a30',
+      confirmColor: '#b4433a',
       success: (r) => {
         if (!r.confirm) return;
         this.setData({ busy: true });
@@ -245,10 +246,10 @@ Page({
   /* ---------------- 文件 ---------------- */
 
   onOpenPrimary() {
-    if (this.data.bar.openName) this.openFile(this.data.bar.openName);
+    if (this.data.dock.openName) this.openFile(this.data.dock.openName);
   },
 
-  onDownload(e) {
+  onFileTap(e) {
     this.openFile(e.currentTarget.dataset.name);
   },
 
@@ -304,20 +305,21 @@ Page({
     this.setData({ stepsOpen: !this.data.stepsOpen });
   },
 
-  toggleLog() {
-    this.setData({ logOpen: !this.data.logOpen });
+  toggleTech() {
+    this.setData({ techOpen: !this.data.techOpen });
   },
 
   onCopyLog() {
-    if (!this.data.logTail) return;
-    wx.setClipboardData({ data: this.data.logTail });
+    if (this.data.logTail) wx.setClipboardData({ data: this.data.logTail });
   },
 
   onCopyId() {
     wx.setClipboardData({ data: this.data.taskId });
   },
 
-  onBackToTasks() {
-    wx.switchTab({ url: '/pages/tasks/tasks' });
+  /** 从分享或新建页 redirect 进来时可能没有上一页，回首页兜底 */
+  onBack() {
+    if (getCurrentPages().length > 1) wx.navigateBack();
+    else wx.reLaunch({ url: '/pages/tasks/tasks' });
   }
 });

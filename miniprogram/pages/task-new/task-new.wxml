@@ -1,56 +1,58 @@
 <view class="page page-with-bar">
-  <view class="masthead">
-    <text class="masthead-title">新建任务</text>
-    <text class="masthead-sub">交一份 Excel，截图和装订都由服务器完成</text>
+  <view class="intro">
+    <text class="title-xl">新建任务</text>
+    <text class="lede">交一份带链接的 Excel，截图和装订都由服务器完成。</text>
   </view>
 
-  <!-- 选文件：页面唯一的主任务 -->
+  <!-- 还没选文件：整块面板就是按钮 -->
   <view
     wx:if="{{!file}}"
-    class="drop"
-    hover-class="drop-press"
+    class="panel pick"
+    hover-class="row-press"
     hover-stay-time="60"
     bindtap="onChooseFile"
     aria-role="button"
     aria-label="从聊天记录选择 Excel"
   >
-    <view class="drop-sheet" aria-hidden="true">
-      <view class="drop-fold"></view>
-      <text class="drop-ext">XLSX</text>
+    <view class="sheet-art" aria-hidden="true">
+      <view class="sheet-art-corner"></view>
+      <view class="sheet-art-grid">
+        <view wx:for="{{[1, 2, 3, 4, 5, 6, 7, 8, 9]}}" wx:key="*this" class="sheet-art-cell"></view>
+      </view>
     </view>
-    <text class="drop-title">从聊天记录选择 Excel</text>
-    <text class="drop-hint">表头需要有「链接」一列，只收 .xlsx</text>
+    <text class="pick-title">从聊天记录选择 Excel</text>
+    <text class="pick-hint">只收 .xlsx，表头里要有链接那一列</text>
   </view>
 
-  <view wx:else class="sheet picked {{uploading ? 'picked-uploading' : ''}}">
-    <!-- 上传进度直接铺在文件行底下 -->
+  <!-- 已选文件：上传进度直接铺在这一行上 -->
+  <view wx:else class="panel picked {{uploading ? 'picked-busy' : ''}}">
     <view class="picked-fill" style="width: {{uploading ? progress : 0}}%"></view>
     <view class="row picked-row">
-      <view class="picked-book" aria-hidden="true"><text>XLSX</text></view>
+      <view class="xls" aria-hidden="true"><text>XLSX</text></view>
       <view class="grow">
         <text class="picked-name ellipsis">{{file.name}}</text>
         <text class="picked-meta">{{uploading ? '正在上传 ' + progress + '%' : file.sizeText}}</text>
       </view>
-      <text wx:if="{{!uploading}}" class="picked-swap" bindtap="onChooseFile">更换</text>
+      <text wx:if="{{!uploading}}" class="picked-swap" bindtap="onChooseFile">换一个</text>
     </view>
   </view>
 
-  <!-- 小程序只能从聊天里取文件：第一次用的人一定会卡在这里，所以常驻说明 -->
+  <!-- 小程序只能从聊天里取文件：第一次用一定会卡在这，所以常驻说明 -->
   <view wx:if="{{!file}}" class="howto">
     <view class="row howto-step">
-      <text class="howto-no">1</text>
-      <text class="grow">在电脑或手机上把 .xlsx 发到「文件传输助手」</text>
+      <text class="howto-n">1</text>
+      <text class="grow">在电脑或手机上，把 .xlsx 发到「文件传输助手」</text>
     </view>
     <view class="row howto-step">
-      <text class="howto-no">2</text>
-      <text class="grow">回到这里，点上面的按钮，在聊天记录里选中它</text>
+      <text class="howto-n">2</text>
+      <text class="grow">回到这里点上面的面板，在聊天记录里选中它</text>
     </view>
   </view>
 
   <view wx:if="{{error}}" class="notice notice-bad error">{{error}}</view>
 
-  <!-- 任务信息 -->
-  <view wx:if="{{file}}" class="sheet form">
+  <!-- 任务信息：选了文件才出现 -->
+  <view wx:if="{{file}}" class="panel panel-pad form">
     <view class="field">
       <view class="field-label"><text>任务名</text></view>
       <input
@@ -66,7 +68,7 @@
     <view class="field">
       <view class="field-label">
         <text>备注</text>
-        <text class="muted">选填 {{note.length}}/200</text>
+        <text class="muted">选填，{{note.length}}/200</text>
       </view>
       <textarea
         class="field-textarea"
@@ -80,28 +82,23 @@
     </view>
   </view>
 
-  <!-- 提交之后会发生什么：是真实的先后顺序，所以用编号 -->
-  <view class="sheet after">
-    <view class="row after-head" bindtap="toggleSteps">
-      <text class="grow after-title">提交之后会发生什么</text>
-      <text class="after-sign">{{stepsOpen ? '收起' : '展开'}}</text>
+  <!-- 提交之后：真实的先后顺序，所以编号 -->
+  <view class="panel after">
+    <view class="fold-head" bindtap="toggleSteps">
+      <text class="fold-title">提交之后会发生什么</text>
+      <view class="chevron {{stepsOpen ? 'chevron-open' : ''}}"></view>
     </view>
-    <view wx:if="{{stepsOpen}}" class="after-body">
+    <view wx:if="{{stepsOpen}}" class="fold-body">
       <view wx:for="{{flow}}" wx:key="*this" class="row after-step">
-        <text class="after-no">{{index + 1}}</text>
+        <text class="howto-n">{{index + 1}}</text>
         <text class="grow">{{item}}</text>
       </view>
-      <text class="after-tail">任务在服务器上跑，关掉小程序不会中断。结束后回「任务」页取结果。</text>
+      <text class="after-tail">任务在服务器上跑，关掉小程序不会中断。结束后回首页取结果。</text>
     </view>
   </view>
 
-  <view class="action-bar">
-    <view
-      wx:if="{{uploading}}"
-      class="btn btn-danger"
-      hover-class="btn-press"
-      bindtap="onCancelUpload"
-    >取消上传</view>
+  <view class="dock">
+    <view wx:if="{{uploading}}" class="btn btn-danger" hover-class="btn-press" bindtap="onCancelUpload">取消上传</view>
     <button
       wx:else
       class="btn btn-primary"

@@ -1,6 +1,4 @@
 {
   "navigationBarTitleText": "",
-  "usingComponents": {
-    "seal": "/components/seal/index"
-  }
+  "usingComponents": {}
 }

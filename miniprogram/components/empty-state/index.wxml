@@ -1,10 +1,13 @@
 <view class="es">
-  <!-- 空档案夹：纯 CSS 绘制，无二进制资源 -->
-  <view class="es-folder" aria-hidden="true">
-    <view class="es-tab"></view>
-    <view class="es-back"></view>
-    <view class="es-paper"></view>
-    <view class="es-front"></view>
+  <!-- 一叠表格：三张错开的纸，纯 CSS -->
+  <view class="es-stack" aria-hidden="true">
+    <view class="es-sheet es-sheet-3"></view>
+    <view class="es-sheet es-sheet-2"></view>
+    <view class="es-sheet es-sheet-1">
+      <view class="es-row"></view>
+      <view class="es-row"></view>
+      <view class="es-row es-row-short"></view>
+    </view>
   </view>
 
   <text class="es-text">{{text}}</text>
@@ -12,7 +15,7 @@
 
   <view
     wx:if="{{actionText}}"
-    class="btn btn-primary btn-sm es-btn"
+    class="btn btn-soft btn-sm es-btn"
     hover-class="btn-press"
     bindtap="onAction"
   >{{actionText}}</view>

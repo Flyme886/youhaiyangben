@@ -14,31 +14,44 @@
 
 - 基础库：`3.5.5`（`project.config.json` 中 `libVersion`）
 - AppID：`wx163f957c85ceff4b`（换成自己的需要在开发者工具里改，或改 `project.config.json`）
-- 代码体积：约 100KB（含图标），远低于主包 2MB 限制，暂未做分包
+- 代码体积：约 100KB，无任何图片资源（图标与插图均为纯 CSS），远低于主包 2MB 限制，暂未做分包
+
+## 信息架构
+
+没有 tabBar。产品只有一个目的地（任务），其余都是从首页进入的子页：
+
+```text
+首页（任务）──┬── 任务详情
+              ├── 新建任务 ──(提交后 redirectTo)──> 任务详情
+              └── 设置与帮助（左上角人像）
+登录页：未登录时 reLaunch 进入，登录后 reLaunch 回首页
+```
+
+- 首页使用 `navigationStyle: custom`，标题行按胶囊按钮对齐（`app.navMetrics()`）。
+- 「新建任务」常驻首页底部，放在拇指区。
+- 详情页的「样本格」：每格一条样本（条数多时一格代表 N 条），绿 = 拿到截图、琥珀 = 被平台拦下、灰 = 链路故障。
 
 ## 目录结构
 
 ```text
 miniprogram/
-├── app.js / app.json / app.wxss     启动、路由与全局样式
+├── app.js / app.json / app.wxss     启动、路由、导航尺寸与全局设计 token
 ├── config/index.js                 环境判定与后端地址（唯一需要改的地方）
 ├── pages/
-│   ├── login/                      登录（静默登录失败时兜底）
-│   ├── tasks/                      任务列表（tabBar 首页）
-│   ├── task-new/                   新建任务（选 Excel + 上传进度）
-│   ├── task-detail/                任务详情（阶段进度、文件下载、重跑）
-│   └── mine/                       我的（登录态、服务连通性）
+│   ├── tasks/                      首页：进行中置顶、按日期分组、筛选与搜索
+│   ├── task-detail/                任务详情：进度时间线 / 样本格、文件、重跑
+│   ├── task-new/                   新建任务：选 Excel、校验、上传进度
+│   ├── mine/                       设置与帮助：账号、服务状态、常见问题
+│   └── login/                      登录（静默登录失败时兜底）
 ├── components/
-│   ├── status-tag/                 状态标签（按后端 status 映射文案与颜色）
-│   ├── seal/                       交付印章（详情页结果 + 登录页品牌，纯 CSS）
-│   └── empty-state/                空状态（纯 CSS 档案夹插图，无二进制资源）
+│   ├── status-tag/                 状态：色点 + 文字（按后端 status 映射）
+│   └── empty-state/                空状态（纯 CSS 插图）
 ├── services/task.js                业务接口封装
-├── utils/
-│   ├── request.js                  请求封装：token 注入 / 401 重入保护 / 上传进度与取消 / 下载
-│   ├── auth.js                     wx.login → 后端 code2session
-│   ├── status.js                   后端状态 → 展示文案（唯一口径）
-│   └── util.js                     时间、文件大小等格式化
-└── assets/icons/                   tabBar 图标（暖纸 + 墨绿）
+└── utils/
+    ├── request.js                  请求封装：token 注入 / 401 重入保护 / 上传进度与取消 / 下载
+    ├── auth.js                     wx.login → 后端 code2session
+    ├── status.js                   后端状态 → 展示文案、覆盖率、样本格（唯一口径）
+    └── util.js                     时间、日期分组、文件大小等格式化
 ```
 
 ## 导入与运行

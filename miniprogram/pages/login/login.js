@@ -3,8 +3,12 @@ const taskApi = require('../../services/task');
 const { envVersionText } = require('../../utils/util');
 const config = require('../../config/index');
 
+/** 品牌标识的 16 格：g 拿到截图、b 被平台拦下。固定排布，不随机 */
+const MARK_CELLS = ['g', 'g', 'g', 'g', 'g', 'g', 'b', 'g', 'g', 'g', 'g', 'g', 'g', 'b', 'g', 'g'];
+
 Page({
   data: {
+    markCells: MARK_CELLS.map((g, i) => ({ k: i, g })),
     loading: false,
     /** wechat | password —— 哪个按钮在转圈 */
     mode: '',
@@ -69,7 +73,7 @@ Page({
     silentLogin(false).then((res) => {
       this.setData({ loading: false, mode: '' });
       if (res && res.token) {
-        wx.switchTab({ url: '/pages/tasks/tasks' });
+        wx.reLaunch({ url: '/pages/tasks/tasks' });
       } else {
         this.setData({
           error: '微信登录没有成功。如果服务器还没配置 AppID / AppSecret，请改用访问密码登录。',
@@ -92,7 +96,7 @@ Page({
     loginWithPassword(pwd)
       .then(() => {
         this.setData({ loading: false, mode: '', password: '' });
-        wx.switchTab({ url: '/pages/tasks/tasks' });
+        wx.reLaunch({ url: '/pages/tasks/tasks' });
       })
       .catch((err) => {
         this.setData({

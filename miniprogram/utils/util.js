@@ -125,16 +125,38 @@ function envVersionText() {
     return '未取到';
   }
 }
-/** "2026-09-29T12:11:17" → "2026.09.29"（印章日期） */
-function formatDateDot(str) {
+
+/** "2026-09-29T12:11:17" → "12:11" */
+function formatClock(str) {
   const d = parseIso(str);
   if (!d) return '';
-  return d.getFullYear() + '.' + pad(d.getMonth() + 1) + '.' + pad(d.getDate());
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+/**
+ * 列表分组用的日期标签：今天 / 昨天 / 11月8日 / 2025年12月3日
+ * @returns {{key:string, label:string}}
+ */
+function dayLabel(str) {
+  const d = parseIso(str);
+  if (!d) return { key: 'unknown', label: '更早' };
+  const key = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const that = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const days = Math.round((today.getTime() - that.getTime()) / 86400000);
+  let label;
+  if (days === 0) label = '今天';
+  else if (days === 1) label = '昨天';
+  else if (d.getFullYear() === today.getFullYear()) label = d.getMonth() + 1 + '月' + d.getDate() + '日';
+  else label = d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  return { key, label };
 }
 
 module.exports = {
   parseIso,
-  formatDateDot,
+  formatClock,
+  dayLabel,
   formatShort,
   formatFull,
   fromNow,

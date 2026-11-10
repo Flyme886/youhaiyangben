@@ -1,92 +1,95 @@
 <view class="page">
-  <view class="masthead">
-    <text class="masthead-title">我的</text>
+  <view class="intro">
+    <text class="title-xl">设置与帮助</text>
   </view>
 
-  <!-- 账号与服务状态 -->
-  <view class="sheet account">
-    <view class="row">
-      <view class="avatar" aria-hidden="true"><text>样</text></view>
+  <!-- 账号 + 服务器状态 -->
+  <view class="panel">
+    <view class="line-row">
+      <view class="avatar" aria-hidden="true">
+        <view class="avatar-head"></view>
+        <view class="avatar-body"></view>
+      </view>
       <view class="grow">
-        <text class="account-name">{{isAdmin ? '管理员' : '业务账号'}}</text>
-        <text class="account-id">{{openidMasked}}</text>
+        <text class="who">{{isAdmin ? '管理员' : '业务账号'}}</text>
+        <text class="who-id">{{openidMasked}}</text>
       </view>
     </view>
-    <view class="row health health-{{health === null ? 'pending' : (health ? 'ok' : 'bad')}}" bindtap="checkHealth">
+    <view class="line-row health health-{{health === null ? 'pending' : (health ? 'ok' : 'bad')}}" bindtap="checkHealth">
       <view class="health-dot"></view>
       <text class="grow">{{healthText}}</text>
-      <text class="health-retry">{{health === false ? '重新检测' : ''}}</text>
+      <text wx:if="{{health === false}}" class="health-retry">重新检测</text>
     </view>
   </view>
 
-  <!-- 我的任务：点数字直接跳到对应筛选 -->
-  <view class="section-head">
-    <text class="section-title">我的任务</text>
+  <!-- 我的任务：点数字回首页并切到对应筛选 -->
+  <view class="group-head">
+    <text class="group-title">我的任务</text>
+    <text class="group-aside">点数字查看</text>
   </view>
-  <view class="sheet stats">
+  <view class="panel stats">
     <view
       wx:for="{{statCards}}"
       wx:key="key"
       class="stat"
-      hover-class="stat-press"
+      hover-class="row-press"
       bindtap="onStatTap"
       data-key="{{item.key}}"
     >
-      <text class="stat-value {{item.key === 'issue' && item.value > 0 ? 'stat-bad' : ''}}">{{item.value}}</text>
+      <text class="stat-n {{item.key === 'issue' && item.value > 0 ? 'stat-bad' : ''}}">{{item.value}}</text>
       <text class="stat-label">{{item.label}}</text>
     </view>
   </view>
 
   <!-- 常见问题 -->
-  <view class="section-head">
-    <text class="section-title">常见问题</text>
+  <view class="group-head">
+    <text class="group-title">常见问题</text>
   </view>
-  <view class="sheet faq">
+  <view class="panel">
     <view
       wx:for="{{faq}}"
       wx:key="q"
-      class="faq-item {{faqOpenIndex === index ? 'faq-open' : ''}}"
+      class="faq"
       bindtap="onFaqTap"
       data-index="{{index}}"
     >
-      <view class="row faq-q">
-        <text class="grow">{{item.q}}</text>
-        <view class="faq-chevron" aria-hidden="true"></view>
+      <view class="fold-head">
+        <text class="fold-title {{faqOpenIndex === index ? 'faq-on' : ''}}">{{item.q}}</text>
+        <view class="chevron {{faqOpenIndex === index ? 'chevron-open' : ''}}"></view>
       </view>
       <text wx:if="{{faqOpenIndex === index}}" class="faq-a">{{item.a}}</text>
     </view>
   </view>
 
   <!-- 环境信息：排查问题时才看 -->
-  <view class="sheet env">
-    <view class="row env-head" bindtap="toggleDetails">
-      <text class="grow env-title">环境信息</text>
-      <text class="env-sign">{{detailsOpen ? '收起' : '展开'}}</text>
+  <view class="panel env">
+    <view class="fold-head" bindtap="toggleDetails">
+      <text class="fold-title">环境信息</text>
+      <view class="chevron {{detailsOpen ? 'chevron-open' : ''}}"></view>
     </view>
-    <view wx:if="{{detailsOpen}}" class="env-body">
-      <view class="row kv">
-        <text class="grow">运行环境</text>
-        <text>{{envLabel}}</text>
+    <view wx:if="{{detailsOpen}}" class="fold-body">
+      <view class="kv">
+        <text class="kv-key">运行环境</text>
+        <text class="kv-val">{{envLabel}}</text>
       </view>
-      <view class="row kv">
-        <text class="grow">运行版本</text>
-        <text>{{envVersion}}</text>
+      <view class="kv">
+        <text class="kv-key">运行版本</text>
+        <text class="kv-val">{{envVersion}}</text>
       </view>
-      <view class="row kv" bindtap="onCopyBaseUrl">
+      <view class="kv" bindtap="onCopyBaseUrl">
         <text class="kv-key">服务地址</text>
-        <text class="grow kv-link ellipsis">{{baseUrl}}</text>
+        <text class="kv-val kv-link ellipsis">{{baseUrl}}</text>
       </view>
-      <view class="row kv">
-        <text class="grow">服务器时间</text>
-        <text>{{serverTime || '未取到'}}</text>
+      <view class="kv">
+        <text class="kv-key">服务器时间</text>
+        <text class="kv-val">{{serverTime || '未取到'}}</text>
       </view>
-      <view class="row kv">
-        <text class="grow">客户端版本</text>
-        <text>{{version}}</text>
+      <view class="kv">
+        <text class="kv-key">客户端版本</text>
+        <text class="kv-val">{{version}}</text>
       </view>
     </view>
   </view>
 
   <view class="btn btn-danger logout" hover-class="btn-press" bindtap="onLogout">退出登录</view>
-  <text class="footer">样本任务台，内部工具</text>
 </view>

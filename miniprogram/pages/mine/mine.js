@@ -124,11 +124,12 @@ Page({
       });
   },
 
-  /** 点统计数字：带着筛选跳到任务页（switchTab 不能带参数，经 globalData 传递） */
+  /** 点统计数字：带着筛选回到首页（经 globalData 传递，首页 onShow 读取） */
   onStatTap(e) {
     const app = getApp();
     if (app && app.globalData) app.globalData.pendingFilter = e.currentTarget.dataset.key;
-    wx.switchTab({ url: '/pages/tasks/tasks' });
+    if (getCurrentPages().length > 1) wx.navigateBack();
+    else wx.reLaunch({ url: '/pages/tasks/tasks' });
   },
 
   toggleDetails() {

@@ -1,12 +1,15 @@
 <view class="login">
   <view class="brand">
-    <seal text="样本任务" tone="seal" size="lg" />
+    <!-- 品牌标识：缩小版的「样本格」，和详情页同一个视觉语言 -->
+    <view class="mark" aria-hidden="true">
+      <view wx:for="{{markCells}}" wx:key="k" class="mark-cell mark-{{item.g}}"></view>
+    </view>
     <text class="brand-title">样本任务台</text>
-    <text class="brand-sub">交一份表格，取回一册带截图的证据</text>
+    <text class="brand-sub">交一份表格，取回一册带截图的 Word</text>
   </view>
 
-  <view class="panel">
-    <!-- 先告诉用户服务器连不连得上，别让网络问题看起来像登录失败 -->
+  <view class="form">
+    <!-- 先说清服务器连不连得上，别让网络问题看起来像登录失败 -->
     <view class="row probe probe-{{serverOk === null ? 'pending' : (serverOk ? 'ok' : 'bad')}}">
       <view class="probe-dot"></view>
       <text class="grow">{{serverMsg}}</text>
@@ -17,7 +20,7 @@
     </view>
 
     <button
-      class="btn btn-primary login-main"
+      class="btn btn-primary wide"
       hover-class="btn-press"
       loading="{{loading && mode === 'wechat'}}"
       disabled="{{loading}}"
@@ -28,7 +31,7 @@
 
     <view wx:else class="pwd">
       <input
-        class="field-input"
+        class="field-input pwd-input"
         password="{{true}}"
         value="{{password}}"
         placeholder="后台访问密码"
@@ -39,7 +42,7 @@
         bindconfirm="onPasswordLogin"
       />
       <button
-        class="btn btn-quiet pwd-btn"
+        class="btn btn-soft wide"
         hover-class="btn-press"
         loading="{{loading && mode === 'password'}}"
         disabled="{{loading}}"
@@ -52,6 +55,6 @@
 
   <view class="footer">
     <text>{{envLabel}}，{{envVersion}}</text>
-    <text class="ellipsis">{{baseUrl}}</text>
+    <text class="ellipsis footer-url">{{baseUrl}}</text>
   </view>
 </view>

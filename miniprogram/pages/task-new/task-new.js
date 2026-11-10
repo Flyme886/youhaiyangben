@@ -61,11 +61,10 @@ Page({
     ensureLogin();
   },
 
-  onShow() {
-    // 提交成功后再回到这个 tab，给一张干净的表单
-    if (this.needReset) {
-      this.needReset = false;
-      this.setData({ file: null, name: '', note: '', progress: 0, error: '' });
+  onUnload() {
+    // 用户返回时如果还在上传，顺手中止，避免后台悄悄建出一个任务
+    if (this.data.uploading && this.pendingUpload && this.pendingUpload.abort) {
+      this.pendingUpload.abort();
     }
   },
 
@@ -174,11 +173,11 @@ Page({
     pending
       .then((res) => {
         this.pendingUpload = null;
-        this.needReset = true;
         this.setData({ uploading: false, progress: 100 });
         wx.showToast({ title: '任务已提交', icon: 'success', duration: 900 });
+        // redirectTo：详情页替换掉新建页，返回时直接回到首页而不是空表单
         setTimeout(() => {
-          wx.navigateTo({ url: '/pages/task-detail/task-detail?id=' + res.task_id });
+          wx.redirectTo({ url: '/pages/task-detail/task-detail?id=' + res.task_id });
         }, 600);
       })
       .catch((err) => {

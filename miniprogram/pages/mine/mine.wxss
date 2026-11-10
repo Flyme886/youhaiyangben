@@ -1,55 +1,68 @@
+.intro {
+  padding: 32rpx 8rpx 40rpx;
+}
+
 /* ---------- 账号 ---------- */
 
-.account {
-  padding-bottom: 0;
-}
-
 .avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 92rpx;
-  height: 92rpx;
-  margin-right: 24rpx;
-  border: 4rpx solid var(--accent);
-  border-radius: 14rpx;
-  color: var(--accent);
-  font-family: var(--serif);
-  font-size: 44rpx;
-  font-weight: 900;
+  position: relative;
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  margin-right: 26rpx;
+  border-radius: 50%;
+  background: var(--primary-wash);
+  overflow: hidden;
 }
 
-.account-name {
+.avatar-head {
+  position: absolute;
+  top: 20rpx;
+  left: 32rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.avatar-body {
+  position: absolute;
+  top: 52rpx;
+  left: 20rpx;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.who {
   display: block;
   font-size: 32rpx;
   font-weight: 600;
 }
 
-.account-id {
+.who-id {
   display: block;
   margin-top: 4rpx;
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: var(--muted);
 }
 
 .health {
-  margin: 28rpx -32rpx 0;
-  padding: 24rpx 32rpx;
-  border-top: 1rpx solid var(--rule);
-  font-size: 25rpx;
+  font-size: 26rpx;
   color: var(--ink-2);
 }
 
 .health-dot {
   width: 14rpx;
   height: 14rpx;
-  margin-right: 16rpx;
+  margin-right: 18rpx;
   border-radius: 50%;
-  background: var(--rule-strong);
+  background: var(--line-strong);
 }
 
 .health-ok .health-dot {
-  background: var(--ok);
+  background: var(--got);
 }
 
 .health-bad {
@@ -61,14 +74,14 @@
 }
 
 .health-retry {
-  color: var(--accent);
+  color: var(--primary);
 }
 
 /* ---------- 统计 ---------- */
 
 .stats {
   display: flex;
-  padding: 8rpx 0;
+  overflow: hidden;
 }
 
 .stat {
@@ -76,22 +89,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24rpx 0;
-  border-radius: 12rpx;
+  padding: 32rpx 0 28rpx;
 }
 
 .stat + .stat {
-  border-left: 1rpx solid var(--rule);
-  border-radius: 0;
+  border-left: 1rpx solid var(--line);
 }
 
-.stat-press {
-  background: #f7f9f8;
-}
-
-.stat-value {
-  font-family: var(--serif);
-  font-size: 48rpx;
+.stat-n {
+  font-size: 46rpx;
   font-weight: 700;
   line-height: 1.1;
   color: var(--ink);
@@ -109,102 +115,29 @@
 
 /* ---------- 常见问题 ---------- */
 
-.faq {
-  padding: 0 32rpx;
+.faq + .faq {
+  border-top: 1rpx solid var(--line);
 }
 
-.faq-item + .faq-item {
-  border-top: 1rpx solid var(--rule);
-}
-
-.faq-q {
-  padding: 28rpx 0;
-  font-size: 27rpx;
-  color: var(--ink);
-}
-
-.faq-chevron {
-  flex-shrink: 0;
-  width: 14rpx;
-  height: 14rpx;
-  margin-left: 20rpx;
-  border-right: 3rpx solid var(--muted);
-  border-bottom: 3rpx solid var(--muted);
-  transform: rotate(45deg);
-  transition: transform 0.2s ease;
-}
-
-.faq-open .faq-chevron {
-  transform: rotate(-135deg);
-}
-
-.faq-open .faq-q {
+.faq-on {
   font-weight: 600;
 }
 
 .faq-a {
   display: block;
-  padding-bottom: 28rpx;
-  font-size: 25rpx;
+  padding: 0 32rpx 32rpx;
+  margin-top: -8rpx;
+  font-size: 26rpx;
   line-height: 1.75;
   color: var(--ink-2);
 }
 
-/* ---------- 环境 ---------- */
+/* ---------- 环境 / 退出 ---------- */
 
 .env {
-  margin-top: 40rpx;
-  padding: 0 32rpx;
-}
-
-.env-head {
-  padding: 28rpx 0;
-}
-
-.env-title {
-  font-size: 27rpx;
-  color: var(--ink-2);
-}
-
-.env-sign {
-  font-size: 24rpx;
-  color: var(--accent);
-}
-
-.env-body {
-  padding-bottom: 24rpx;
-}
-
-.kv {
-  padding: 10rpx 0;
-  font-size: 24rpx;
-  color: var(--ink-2);
-}
-
-.kv-key {
-  flex-shrink: 0;
-  margin-right: 24rpx;
-}
-
-.kv-link {
-  color: var(--accent);
-  text-align: right;
+  margin-top: 48rpx;
 }
 
 .logout {
   margin-top: 48rpx;
-}
-
-.footer {
-  display: block;
-  margin-top: 32rpx;
-  font-size: 22rpx;
-  color: var(--muted);
-  text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .faq-chevron {
-    transition: none;
-  }
 }

@@ -2,78 +2,76 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 72rpx 48rpx 64rpx;
+  padding: 80rpx 56rpx 72rpx;
 }
 
-/* 档案夹：后片 + 一张纸 + 前片，前片略斜，像刚被翻开 */
-.es-folder {
+.es-stack {
   position: relative;
-  width: 200rpx;
+  width: 168rpx;
+  height: 160rpx;
+  margin-bottom: 44rpx;
+}
+
+.es-sheet {
+  position: absolute;
+  width: 132rpx;
   height: 150rpx;
-  margin-bottom: 40rpx;
-}
-
-.es-tab {
-  position: absolute;
-  top: 0;
-  left: 18rpx;
-  width: 72rpx;
-  height: 24rpx;
-  border-radius: 10rpx 10rpx 0 0;
-  background: #c9d0cc;
-}
-
-.es-back {
-  position: absolute;
-  top: 18rpx;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 12rpx;
-  background: #c9d0cc;
-}
-
-.es-paper {
-  position: absolute;
-  top: 34rpx;
-  left: 22rpx;
-  right: 22rpx;
-  height: 90rpx;
-  border-radius: 6rpx;
+  border-radius: 14rpx;
   background: #ffffff;
-  border: 1rpx solid #dde2df;
+  box-shadow: inset 0 0 0 2rpx #e4e6e2;
 }
 
-.es-front {
-  position: absolute;
+.es-sheet-3 {
+  left: 36rpx;
+  top: 0;
+  transform: rotate(9deg);
+  background: #eceeea;
+}
+
+.es-sheet-2 {
+  left: 18rpx;
+  top: 4rpx;
+  transform: rotate(4deg);
+  background: #f5f6f3;
+}
+
+.es-sheet-1 {
   left: 0;
-  right: 0;
-  bottom: 0;
-  height: 92rpx;
-  border-radius: 10rpx 10rpx 12rpx 12rpx;
-  background: #dde2df;
-  transform: perspective(300rpx) rotateX(14deg);
-  transform-origin: bottom center;
+  top: 10rpx;
+  padding: 34rpx 22rpx;
+}
+
+.es-row {
+  height: 10rpx;
+  border-radius: 6rpx;
+  background: #e4e6e2;
+}
+
+.es-row + .es-row {
+  margin-top: 16rpx;
+}
+
+.es-row-short {
+  width: 60%;
 }
 
 .es-text {
-  font-family: 'Songti SC', 'STSong', serif;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #18221e;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1d2329;
   text-align: center;
 }
 
 .es-hint {
   max-width: 540rpx;
   margin-top: 14rpx;
-  font-size: 25rpx;
+  font-size: 26rpx;
   line-height: 1.7;
-  color: #7a847f;
+  color: #858c92;
   text-align: center;
 }
 
 .es-btn {
-  margin-top: 36rpx;
-  padding: 0 44rpx;
+  margin-top: 40rpx;
+  padding: 0 48rpx;
 }

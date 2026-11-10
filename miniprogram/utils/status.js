@@ -65,22 +65,6 @@ function canCancel(status) {
   return status === 'queued' || status === 'running';
 }
 
-/**
- * 交付印章：任务结束后在详情页盖下的那枚章。
- * 只有「结束了」的任务才有章；进行中返回 null。
- */
-const SEAL_MAP = {
-  completed: { text: '已交付', tone: 'seal' },
-  partial_completed: { text: '缺图交付', tone: 'seal' },
-  failed: { text: '未交付', tone: 'void' },
-  paused_captcha: { text: '待重跑', tone: 'void' },
-  cancelled: { text: '已撤回', tone: 'void' }
-};
-
-function sealOf(status) {
-  return SEAL_MAP[status] || null;
-}
-
 /* ---------------- 步骤流 ---------------- */
 
 const STEPS = [
@@ -246,6 +230,31 @@ function coverageOf(summary) {
   };
 }
 
+/**
+ * 样本格：每一格代表一条样本（条数多时一格代表 N 条），按截图结果着色。
+ * 格子按「拿到 → 被拦 → 故障」排列，读起来就是一张覆盖率图。
+ *
+ * @param {object} coverage coverageOf 的返回值
+ * @param {number} [maxCells=200] 最多画多少格（20 列 × 10 行）
+ * @returns {{cells:Array<{i:number, g:string}>, per:number}|null}
+ */
+function gridOf(coverage, maxCells) {
+  if (!coverage || !coverage.total) return null;
+  const cap = maxCells || 200;
+  const per = Math.max(1, Math.ceil(coverage.total / cap));
+  const groups = ['got', 'blocked', 'broken'];
+
+  const cells = [];
+  groups.forEach((g) => {
+    const n = coverage.segments.filter((s) => s.group === g).reduce((sum, s) => sum + s.count, 0);
+    // 有就至少画一格，免得一两条失败在大任务里完全看不见
+    const k = n > 0 ? Math.max(1, Math.round(n / per)) : 0;
+    for (let j = 0; j < k; j += 1) cells.push({ i: cells.length, g });
+  });
+
+  return { cells, per };
+}
+
 /* ---------------- 错误文案 ---------------- */
 
 const ERROR_RULES = [
@@ -312,7 +321,6 @@ module.exports = {
   isLive,
   canResume,
   canCancel,
-  sealOf,
   currentStepIndex,
   describeStep,
   buildSteps,
@@ -320,6 +328,7 @@ module.exports = {
   describeError,
   captureSummary,
   coverageOf,
+  gridOf,
   toCountList,
   CAPTURE_LABELS,
   QUALITY_LABELS

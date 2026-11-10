@@ -1,8 +1,7 @@
 {
-  "navigationBarTitleText": "任务详情",
+  "navigationBarTitleText": "",
   "enablePullDownRefresh": true,
   "usingComponents": {
-    "status-tag": "/components/status-tag/index",
-    "seal": "/components/seal/index"
+    "status-tag": "/components/status-tag/index"
   }
 }

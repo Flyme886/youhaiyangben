@@ -1,52 +1,46 @@
-<view class="page {{bar.show ? 'page-with-bar' : ''}}">
+<view class="page {{dock.show ? 'page-with-bar' : ''}}">
   <!-- 加载中 -->
   <block wx:if="{{loading}}">
-    <view class="masthead">
+    <view class="head">
       <view class="skeleton sk-name"></view>
       <view class="skeleton sk-sub"></view>
     </view>
-    <view class="sheet"><view class="skeleton sk-hero"></view></view>
+    <view class="panel panel-pad"><view class="skeleton sk-hero"></view></view>
   </block>
 
   <!-- 加载失败 -->
-  <view wx:elif="{{loadError}}" class="load-error">
+  <view wx:elif="{{loadError}}" class="head">
     <view class="notice notice-bad">{{loadError}}</view>
-    <view class="btn btn-quiet btn-sm back-btn" hover-class="btn-press" bindtap="onBackToTasks">回到任务列表</view>
+    <view class="btn btn-soft btn-sm back-btn" hover-class="btn-press" bindtap="onBack">回到任务列表</view>
   </view>
 
   <block wx:else>
     <!-- 标题 -->
-    <view class="masthead">
-      <text class="detail-name">{{task.name || '未命名任务'}}</text>
-      <view class="row detail-sub">
+    <view class="head">
+      <text class="name">{{task.name || '未命名任务'}}</text>
+      <view class="row head-meta">
         <status-tag status="{{task.status}}" />
-        <text class="detail-when">提交于 {{createdText}}</text>
+        <text class="head-when">{{createdText}} 提交</text>
       </view>
-      <text wx:if="{{task.note}}" class="detail-note">{{task.note}}</text>
+      <text wx:if="{{task.note}}" class="head-note">{{task.note}}</text>
     </view>
 
-    <!-- ① 进行中：讲清楚现在在干什么 -->
-    <view wx:if="{{live}}" class="sheet hero hero-live">
-      <text class="hero-step">{{stepText}}</text>
-      <text class="hero-step-sub">{{task.status === 'queued' ? '前面还有任务，轮到它时自动开始' : '第 ' + stepNo + ' 步，共 4 步'}}</text>
-      <view class="track hero-track">
+    <!-- 进行中：现在在做什么 + 时间线 -->
+    <view wx:if="{{live}}" class="panel panel-pad">
+      <text class="now">{{stepText}}</text>
+      <text class="now-sub">{{task.status === 'queued' ? '前面还有任务，轮到它时会自动开始' : '第 ' + stepNo + ' 步，共 4 步'}}</text>
+      <view class="track now-track {{task.status === 'running' ? 'track-live' : ''}}">
         <view class="track-fill" style="width: {{progress}}%"></view>
       </view>
-      <view class="row hero-foot">
-        <text class="grow">{{durationText ? '已运行 ' + durationText : '等待开始'}}</text>
-        <text>可以离开，任务在服务器上继续</text>
-      </view>
+      <text class="now-foot">{{durationText ? '已运行 ' + durationText + '，' : ''}}关掉小程序也会继续</text>
 
       <view class="steps">
         <view wx:for="{{steps}}" wx:key="key" class="step step-{{item.state}}">
           <view class="step-rail">
-            <view class="step-mark">
-              <text wx:if="{{item.state !== 'done'}}">{{item.no}}</text>
-              <view wx:else class="step-check"></view>
-            </view>
+            <view class="step-dot"></view>
             <view wx:if="{{index !== steps.length - 1}}" class="step-line"></view>
           </view>
-          <view class="step-body">
+          <view class="grow step-body">
             <text class="step-label">{{item.label}}</text>
             <text class="step-hint">{{item.hint}}</text>
           </view>
@@ -54,169 +48,149 @@
       </view>
     </view>
 
-    <!-- ② 已结束：取证覆盖率 + 交付印章 -->
-    <view wx:else class="sheet hero hero-done">
-      <view class="row hero-top">
-        <view class="grow">
-          <block wx:if="{{coverage}}">
-            <view class="cov-figure">
-              <text class="cov-got">{{coverage.got}}</text>
-              <text class="cov-total">/ {{coverage.total}}</text>
-            </view>
-            <text class="cov-caption">条拿到了页面截图</text>
-          </block>
-          <block wx:else>
-            <text class="cov-plain">{{task.docx_count > 0 ? 'Word ' + task.docx_count + ' 册' : '没有产出 Word'}}</text>
-            <text class="cov-caption">{{task.issue_count > 0 ? '其中 ' + task.issue_count + ' 条缺图' : statusHint}}</text>
-          </block>
-        </view>
-        <seal wx:if="{{seal}}" text="{{seal.text}}" tone="{{seal.tone}}" sub="{{sealDate}}" stamp="{{stampNow}}" />
-      </view>
-
-      <!-- 取证条：每一段的宽度就是这一类的占比 -->
+    <!-- 已结束：样本格 -->
+    <view wx:else class="panel panel-pad">
       <block wx:if="{{coverage}}">
-        <view class="evidence" aria-label="截图覆盖 {{coverage.percent}}%">
+        <view class="figure">
+          <text class="figure-n">{{coverage.got}}</text>
+          <text class="figure-of">/ {{coverage.total}} 条拿到了页面截图</text>
+        </view>
+
+        <view class="grid {{gridAnimate ? 'grid-reveal' : ''}}" aria-label="截图覆盖 {{coverage.percent}}%">
           <view
-            wx:for="{{coverage.segments}}"
-            wx:key="key"
-            class="ev-seg ev-{{item.group}}"
-            style="width: {{item.width}}%"
+            wx:for="{{grid.cells}}"
+            wx:key="i"
+            class="cell cell-{{item.g}}"
+            style="{{gridAnimate ? 'animation-delay: ' + item.i * 6 + 'ms' : ''}}"
           ></view>
         </view>
-        <view class="ev-legend">
-          <view wx:for="{{coverage.segments}}" wx:key="key" class="row ev-row">
-            <view class="ev-swatch ev-{{item.group}}"></view>
+        <text wx:if="{{grid.per > 1}}" class="grid-note">每格约 {{grid.per}} 条</text>
+
+        <view class="legend">
+          <view wx:for="{{coverage.segments}}" wx:key="key" class="row legend-row">
+            <view class="swatch cell-{{item.group}}"></view>
             <text class="grow">{{item.label}}</text>
-            <text class="ev-count">{{item.count}}</text>
+            <text class="legend-n">{{item.count}}</text>
           </view>
         </view>
       </block>
 
-      <text wx:if="{{coverage}}" class="hero-hint">{{statusHint}}</text>
+      <!-- 没有截图统计（老任务或早早失败）：退回到文字 -->
+      <block wx:else>
+        <text class="figure-plain">{{task.docx_count > 0 ? 'Word ' + task.docx_count + ' 册' : '没有产出 Word'}}</text>
+        <text wx:if="{{task.issue_count > 0}}" class="figure-sub">其中 {{task.issue_count}} 条缺图</text>
+      </block>
+
+      <text class="verdict">{{statusHint}}</text>
+    </view>
+
+    <!-- 交付说明 -->
+    <view wx:if="{{errorList.length > 0}}" class="notice notice-warn issues">
+      <text wx:for="{{errorList}}" wx:key="*this" class="issue">{{item}}</text>
     </view>
 
     <!-- 结果文件 -->
-    <view class="section-head">
-      <text class="section-title">结果文件</text>
-      <text wx:if="{{files.length > 0}}" class="section-aside">点文件打开或转发</text>
+    <view class="group-head">
+      <text class="group-title">结果文件</text>
+      <text wx:if="{{files.length > 1}}" class="group-aside">{{files.length}} 个</text>
     </view>
-    <view wx:if="{{files.length > 0}}" class="sheet file-sheet">
+    <view wx:if="{{files.length > 0}}" class="panel">
       <view
         wx:for="{{files}}"
         wx:key="name"
-        class="file-row"
-        hover-class="file-row-press"
+        class="line-row file"
+        hover-class="row-press"
         hover-stay-time="60"
-        bindtap="onDownload"
+        bindtap="onFileTap"
         data-name="{{item.name}}"
       >
-        <view class="file-book file-book-{{item.kind}}">
-          <text>{{item.extLabel}}</text>
+        <view class="doc doc-{{item.kind}}" aria-hidden="true">
+          <view class="doc-corner"></view>
+          <text class="doc-ext">{{item.extLabel}}</text>
         </view>
         <view class="grow">
           <text class="file-name ellipsis">{{item.name}}</text>
           <text class="file-meta">{{item.sizeText}}</text>
         </view>
-        <text class="file-action">{{item.previewable ? '打开' : '转发'}}</text>
+        <text class="file-act">{{item.previewable ? '打开' : '转发'}}</text>
       </view>
     </view>
-    <view wx:else class="sheet file-empty">
+    <view wx:else class="panel panel-pad files-empty">
       {{live ? '每一册 Word 生成后会出现在这里' : '这次没有可下载的文件'}}
     </view>
 
-    <!-- 交付说明 -->
-    <block wx:if="{{errorList.length > 0}}">
-      <view class="section-head">
-        <text class="section-title">交付说明</text>
-      </view>
-      <view class="notice notice-warn">
-        <text wx:for="{{errorList}}" wx:key="*this" class="issue-line">{{item}}</text>
-      </view>
-    </block>
-
-    <!-- 结案结论：后端收尾时生成，可能为空 -->
+    <!-- 结案结论 -->
     <block wx:if="{{conclusion}}">
-      <view class="section-head">
-        <text class="section-title">结案结论</text>
+      <view class="group-head">
+        <text class="group-title">结案结论</text>
       </view>
-      <view class="sheet">
+      <view class="panel panel-pad">
         <text class="conclusion">{{conclusion}}</text>
       </view>
     </block>
 
-    <!-- 低频信息：默认收起 -->
-    <view class="sheet fold-sheet">
-      <view wx:if="{{!live}}" class="fold">
-        <view class="row fold-head" bindtap="toggleSteps">
-          <text class="grow fold-title">处理过程</text>
-          <text class="fold-sign">{{stepsOpen ? '收起' : '展开'}}</text>
+    <!-- 低频信息 -->
+    <view class="panel folds">
+      <block wx:if="{{!live}}">
+        <view class="fold-head" bindtap="toggleSteps">
+          <text class="fold-title">处理过程</text>
+          <view class="chevron {{stepsOpen ? 'chevron-open' : ''}}"></view>
         </view>
         <view wx:if="{{stepsOpen}}" class="fold-body">
-          <view wx:for="{{steps}}" wx:key="key" class="row mini-step mini-{{item.state}}">
-            <view class="mini-dot"></view>
+          <view wx:for="{{steps}}" wx:key="key" class="kv">
+            <text class="kv-key">第 {{index + 1}} 步</text>
             <text class="grow">{{item.label}}</text>
-            <text class="mini-state">{{item.state === 'done' ? '完成' : '未进行'}}</text>
+            <text class="{{item.state === 'done' ? '' : 'muted'}}">{{item.state === 'done' ? '完成' : '未进行'}}</text>
           </view>
-          <view wx:if="{{quality.length > 0}}" class="quality">
-            <text class="quality-title">截图检查分档</text>
-            <view wx:for="{{quality}}" wx:key="key" class="row kv">
+          <block wx:if="{{quality.length > 0}}">
+            <text class="fold-sub">截图检查</text>
+            <view wx:for="{{quality}}" wx:key="key" class="kv">
               <text class="grow">{{item.label}}</text>
               <text>{{item.count}}</text>
             </view>
-          </view>
+          </block>
         </view>
-      </view>
+        <view class="fold-split"></view>
+      </block>
 
-      <view class="fold">
-        <view class="row fold-head" bindtap="toggleLog">
-          <text class="grow fold-title">技术信息</text>
-          <text class="fold-sign">{{logOpen ? '收起' : '展开'}}</text>
+      <view class="fold-head" bindtap="toggleTech">
+        <text class="fold-title">技术信息</text>
+        <view class="chevron {{techOpen ? 'chevron-open' : ''}}"></view>
+      </view>
+      <view wx:if="{{techOpen}}" class="fold-body">
+        <view class="kv" bindtap="onCopyId">
+          <text class="kv-key">任务编号</text>
+          <text class="kv-val kv-link">{{task.id}}</text>
         </view>
-        <view wx:if="{{logOpen}}" class="fold-body">
-          <view class="row kv" bindtap="onCopyId">
-            <text class="grow">任务编号</text>
-            <text class="kv-link">{{task.id}}</text>
-          </view>
-          <view class="row kv">
-            <text class="grow">提交时间</text>
-            <text>{{createdFull}}</text>
-          </view>
-          <view wx:if="{{finishedText}}" class="row kv">
-            <text class="grow">结束时间</text>
-            <text>{{finishedText}}</text>
-          </view>
-          <view wx:if="{{durationText}}" class="row kv">
-            <text class="grow">耗时</text>
-            <text>{{durationText}}</text>
-          </view>
-          <view wx:if="{{logTail}}" class="log-box">
-            <text class="log-text" user-select="{{true}}">{{logTail}}</text>
-          </view>
-          <view wx:if="{{logTail}}" class="btn btn-sm copy-btn" hover-class="btn-press" bindtap="onCopyLog">复制日志</view>
+        <view class="kv">
+          <text class="kv-key">提交时间</text>
+          <text class="kv-val">{{createdFull}}</text>
         </view>
+        <view wx:if="{{finishedFull}}" class="kv">
+          <text class="kv-key">结束时间</text>
+          <text class="kv-val">{{finishedFull}}</text>
+        </view>
+        <view wx:if="{{durationText}}" class="kv">
+          <text class="kv-key">耗时</text>
+          <text class="kv-val">{{durationText}}</text>
+        </view>
+        <view wx:if="{{logTail}}" class="log">
+          <text class="log-text" user-select="{{true}}">{{logTail}}</text>
+        </view>
+        <view wx:if="{{logTail}}" class="btn btn-ghost btn-sm log-copy" hover-class="btn-press" bindtap="onCopyLog">复制日志</view>
       </view>
     </view>
   </block>
 
-  <!-- 固定底栏：只放当前状态下最该做的一两件事 -->
-  <view wx:if="{{bar.show}}" class="action-bar">
+  <!-- 底栏：当前状态下最该做的一两件事 -->
+  <view wx:if="{{dock.show}}" class="dock">
+    <view wx:if="{{dock.cancel}}" class="btn btn-danger" hover-class="btn-press" bindtap="onCancel">取消任务</view>
     <view
-      wx:if="{{bar.cancel}}"
-      class="btn btn-danger"
-      hover-class="btn-press"
-      bindtap="onCancel"
-    >取消任务</view>
-    <view
-      wx:if="{{bar.resume}}"
-      class="btn {{bar.open ? 'btn-quiet' : 'btn-primary'}}"
+      wx:if="{{dock.resume}}"
+      class="btn {{dock.open ? 'btn-soft' : 'btn-primary'}}"
       hover-class="btn-press"
       bindtap="onResume"
-    >{{busy ? '处理中' : bar.resumeText}}</view>
-    <view
-      wx:if="{{bar.open}}"
-      class="btn btn-primary"
-      hover-class="btn-press"
-      bindtap="onOpenPrimary"
-    >打开 Word</view>
+    >{{busy ? '请稍候' : dock.resumeText}}</view>
+    <view wx:if="{{dock.open}}" class="btn btn-primary" hover-class="btn-press" bindtap="onOpenPrimary">打开 Word</view>
   </view>
 </view>

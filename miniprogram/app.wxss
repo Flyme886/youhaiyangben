@@ -1,42 +1,45 @@
 /**
- * 舆见 · 样本任务台 —— 全局视觉规范
+ * 样本任务台 —— 全局视觉规范
  *
- * 隐喻：证据册 / 卷宗。纸面是冷灰绿的档案纸，正文是墨，主色墨绿；
- * 朱砂只留给「交付印章」这一处，别处一律不用，保证它出现时有分量。
+ * 原则
+ *   1. 内容即界面：没有装饰色块、没有渐变、没有通用阴影。层级靠留白、字重和一条细线。
+ *   2. 颜色只表达状态：主色墨绿只给「能点的主操作」和「正在进行」；
+ *      琥珀 = 被平台拦下，灰 = 链路故障，绿 = 拿到截图。别处不出现彩色。
+ *   3. 圆角有层级：整块面板 28rpx、按钮 20rpx、标签全圆，行内元素不加圆角。
+ *   4. 只有一个阴影：浮在内容上方的底部操作栏。
  *
- * 基准宽度 750rpx，所有尺寸用 rpx。
+ * 基准宽度 750rpx。
  */
 page {
-  /* 纸与墨 */
-  --paper: #f1f3f1;
-  --sheet: #ffffff;
-  --ink: #18221e;
-  --ink-2: #4a5550;
-  --muted: #7a847f;
-  --rule: #dde2df;
-  --rule-strong: #c9d0cc;
-  --well: #e8ece9;
+  --canvas: #f3f4f1;
+  --surface: #ffffff;
+  --well: #eceeea;
 
-  /* 墨绿：品牌与主操作 */
-  --accent: #1d5c4e;
-  --accent-press: #154538;
-  --accent-wash: #e3eee9;
+  --ink: #1d2329;
+  --ink-2: #4b535a;
+  --muted: #858c92;
+  --faint: #b3b8bc;
 
-  /* 语义色 */
-  --ok: #2c7a4b;
-  --ok-wash: #e4f1e8;
-  --warn: #9a5f12;
-  --warn-wash: #f6ecdc;
-  --bad: #a83a30;
-  --bad-wash: #f6e4e1;
+  --line: #e4e6e2;
+  --line-strong: #cdd1cc;
 
-  /* 朱砂：仅用于印章 */
-  --seal: #b0362b;
+  --primary: #1f5a4c;
+  --primary-press: #17463b;
+  --primary-wash: #e2ede8;
 
-  --serif: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif;
+  --got: #2e7d5b;
+  --blocked: #d49a3a;
+  --blocked-ink: #8e5e12;
+  --blocked-wash: #f7eddb;
+  --broken: #b4bac0;
+
+  --bad: #b4433a;
+  --bad-wash: #f7e5e2;
+
   --sans: -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei', sans-serif;
+  --mono: 'SF Mono', Menlo, 'Roboto Mono', Consolas, monospace;
 
-  background-color: var(--paper);
+  background-color: var(--canvas);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 28rpx;
@@ -63,66 +66,74 @@ button::after {
 
 .page {
   min-height: 100vh;
-  padding: 8rpx 32rpx 64rpx;
+  padding: 0 32rpx 64rpx;
 }
 
-/* 底部有固定操作栏的页面，给内容留出空间 */
+/* 底部有浮动操作栏的页面，内容要让出位置 */
 .page-with-bar {
-  padding-bottom: calc(196rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
-.masthead {
-  padding: 28rpx 0 32rpx;
-}
-
-.masthead-title {
+/* 页面大标题：字重而不是字号撑出层级 */
+.title-xl {
   display: block;
-  font-family: var(--serif);
-  font-size: 56rpx;
+  font-size: 52rpx;
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 2rpx;
+  line-height: 1.2;
+  letter-spacing: -0.5rpx;
   color: var(--ink);
 }
 
-.masthead-sub {
+.lede {
   display: block;
   margin-top: 12rpx;
-  font-size: 26rpx;
-  color: var(--muted);
+  font-size: 27rpx;
+  line-height: 1.6;
+  color: var(--ink-2);
 }
 
-/* 纸页：内容的承载面。圆角克制，用一条细描边而不是阴影 */
-.sheet {
-  background: var(--sheet);
-  border: 1rpx solid var(--rule);
-  border-radius: 20rpx;
-  padding: 32rpx;
+/* 面板：内容承载面，只有底色差，不描边不投影 */
+.panel {
+  background: var(--surface);
+  border-radius: 28rpx;
 }
 
-.sheet + .sheet,
-.sheet + .section,
-.section + .sheet,
-.section + .section {
-  margin-top: 24rpx;
+.panel-pad {
+  padding: 36rpx 32rpx;
 }
 
-.section-head {
+/* 分组标题：一行小字 + 可选右侧补充，紧贴所属内容 */
+.group-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 40rpx 4rpx 16rpx;
+  padding: 48rpx 8rpx 18rpx;
 }
 
-.section-title {
+.group-title {
   font-size: 26rpx;
   font-weight: 600;
   color: var(--ink-2);
 }
 
-.section-aside {
+.group-aside {
   font-size: 24rpx;
   color: var(--muted);
+}
+
+/* 列表行：面板内的条目，用细线分隔 */
+.line-row {
+  display: flex;
+  align-items: center;
+  padding: 30rpx 32rpx;
+}
+
+.line-row + .line-row {
+  border-top: 1rpx solid var(--line);
+}
+
+.row-press {
+  background: #f7f8f6;
 }
 
 .row {
@@ -145,26 +156,22 @@ button::after {
   color: var(--muted);
 }
 
-.small {
-  font-size: 24rpx;
-}
-
 /* ---------- 按钮 ---------- */
 
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 96rpx;
+  height: 100rpx;
   margin: 0;
-  padding: 0 36rpx;
+  padding: 0 40rpx;
   border: 0;
-  border-radius: 16rpx;
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1;
+  border-radius: 20rpx;
   background: var(--well);
   color: var(--ink);
+  font-size: 31rpx;
+  font-weight: 600;
+  line-height: 1;
 }
 
 /* 原生 <button> 在 style v2 下有固定宽度和外边距，这里统一抹掉 */
@@ -175,72 +182,74 @@ button.btn {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--primary);
   color: #ffffff;
 }
 
-.btn-primary.btn-press {
-  background: var(--accent-press);
-}
-
 .btn-primary[disabled] {
-  background: var(--rule-strong) !important;
+  background: var(--line-strong) !important;
   color: #ffffff !important;
 }
 
-.btn-quiet {
-  background: var(--accent-wash);
-  color: var(--accent);
+.btn-soft {
+  background: var(--primary-wash);
+  color: var(--primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 2rpx var(--line-strong);
 }
 
 .btn-danger {
   background: transparent;
   color: var(--bad);
-  border: 1rpx solid var(--rule-strong);
+  box-shadow: inset 0 0 0 2rpx var(--line-strong);
 }
 
 .btn-sm {
   height: 68rpx;
   padding: 0 28rpx;
+  border-radius: 16rpx;
   font-size: 26rpx;
-  border-radius: 14rpx;
 }
 
 .btn-press {
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
-/* ---------- 固定底栏 ---------- */
+/* ---------- 浮动底栏：全站唯一带阴影的元素 ---------- */
 
-.action-bar {
+.dock {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
+  z-index: 30;
   display: flex;
   gap: 20rpx;
   padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
-  background: rgba(241, 243, 241, 0.94);
-  border-top: 1rpx solid var(--rule);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(243, 244, 241, 0.92);
+  box-shadow: 0 -1rpx 0 var(--line), 0 -16rpx 40rpx rgba(29, 35, 41, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
-.action-bar .btn {
+.dock .btn {
   flex: 1;
 }
 
 /* ---------- 表单 ---------- */
 
 .field + .field {
-  margin-top: 28rpx;
+  margin-top: 32rpx;
 }
 
 .field-label {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12rpx;
+  margin-bottom: 14rpx;
   font-size: 25rpx;
   font-weight: 500;
   color: var(--ink-2);
@@ -249,53 +258,67 @@ button.btn {
 .field-input,
 .field-textarea {
   width: 100%;
-  padding: 0 24rpx;
-  border: 1rpx solid var(--rule);
-  border-radius: 14rpx;
-  background: var(--paper);
+  padding: 0 28rpx;
+  border-radius: 18rpx;
+  background: var(--canvas);
   color: var(--ink);
-  font-size: 29rpx;
+  font-size: 30rpx;
 }
 
 .field-input {
-  height: 92rpx;
+  height: 96rpx;
 }
 
 .field-textarea {
-  height: 160rpx;
-  padding-top: 22rpx;
-  padding-bottom: 22rpx;
+  height: 168rpx;
+  padding-top: 24rpx;
+  padding-bottom: 24rpx;
   line-height: 1.6;
 }
 
 .placeholder {
-  color: #a6aea9;
+  color: var(--faint);
 }
 
 /* ---------- 进度条 ---------- */
 
 .track {
-  position: relative;
-  height: 8rpx;
-  border-radius: 8rpx;
+  height: 10rpx;
+  border-radius: 10rpx;
   background: var(--well);
   overflow: hidden;
 }
 
 .track-fill {
   height: 100%;
-  border-radius: 8rpx;
-  background: var(--accent);
-  transition: width 0.5s ease;
+  border-radius: 10rpx;
+  background: var(--primary);
+  transition: width 0.6s ease;
 }
 
-/* ---------- 提示条 ---------- */
+/* 运行中：进度条上有一道缓慢移动的亮带，表示「在动」，不代表具体进度 */
+.track-live .track-fill {
+  background: linear-gradient(90deg, var(--primary) 0%, #3d7f6e 50%, var(--primary) 100%);
+  background-size: 200% 100%;
+  animation: track-flow 2.4s linear infinite;
+}
+
+@keyframes track-flow {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* ---------- 提示 ---------- */
 
 .notice {
-  padding: 22rpx 26rpx;
-  border-radius: 14rpx;
-  font-size: 25rpx;
-  line-height: 1.6;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+  line-height: 1.65;
 }
 
 .notice-bad {
@@ -304,24 +327,83 @@ button.btn {
 }
 
 .notice-warn {
-  background: var(--warn-wash);
-  color: var(--warn);
+  background: var(--blocked-wash);
+  color: var(--blocked-ink);
 }
 
 .notice-detail {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   font-size: 22rpx;
   color: var(--ink-2);
   white-space: pre-wrap;
   word-break: break-all;
 }
 
+/* ---------- 键值行（技术信息、环境信息） ---------- */
+
+.kv {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  font-size: 25rpx;
+  color: var(--ink-2);
+}
+
+.kv-key {
+  flex-shrink: 0;
+  width: 160rpx;
+  color: var(--muted);
+}
+
+.kv-val {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.kv-link {
+  color: var(--primary);
+}
+
+/* ---------- 折叠 ---------- */
+
+.fold-head {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+}
+
+.fold-title {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.chevron {
+  width: 14rpx;
+  height: 14rpx;
+  margin-right: 4rpx;
+  border-right: 3rpx solid var(--muted);
+  border-bottom: 3rpx solid var(--muted);
+  transform: rotate(45deg) translate(-3rpx, -3rpx);
+  transition: transform 0.2s ease;
+}
+
+.chevron-open {
+  transform: rotate(-135deg) translate(-3rpx, -3rpx);
+}
+
+.fold-body {
+  padding: 0 32rpx 32rpx;
+}
+
 /* ---------- 骨架 ---------- */
 
 .skeleton {
-  border-radius: 8rpx;
-  background: linear-gradient(90deg, #e6eae7 25%, #eff2f0 37%, #e6eae7 63%);
+  border-radius: 10rpx;
+  background: linear-gradient(90deg, #e7e9e5 25%, #f0f1ee 37%, #e7e9e5 63%);
   background-size: 400% 100%;
   animation: skeleton 1.4s ease infinite;
 }
@@ -336,10 +418,12 @@ button.btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
+  .skeleton,
+  .track-live .track-fill {
     animation: none;
   }
-  .track-fill {
+  .track-fill,
+  .chevron {
     transition: none;
   }
 }
